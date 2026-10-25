@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sueños · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+#rec-zone{display:flex;align-items:center;margin:4px 0 10px}
+#rec{width:78px;height:78px;border-radius:50%;background:var(--o);color:#000;font-weight:700;font-size:12px;letter-spacing:2px;flex-shrink:0}
+#rec.on{background:#000;border:3px solid #ff3355;color:#ff3355;box-shadow:0 0 14px rgba(255,51,85,.6)}
+#rec-info{flex:1;margin-left:14px}
+#rec-t{font-family:var(--disp);font-weight:900;font-size:40px;line-height:1;color:var(--ink)}
+#nivel{height:8px;background:var(--line);margin-top:8px;position:relative;overflow:hidden}
+#nivel i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blue);box-shadow:var(--glow);transition:width .08s}
+.clip{display:flex;align-items:center;padding:6px 0}
+.clip audio{flex:1;height:34px;min-width:0}
+.clip button{color:#ff3355;font-size:10px;letter-spacing:1px;margin-left:10px;text-transform:uppercase}
+.sn{border:2px solid var(--line);border-left:5px solid var(--blue);background:var(--panel);padding:12px 14px;margin-bottom:10px}
+.sn h3{font-family:var(--disp);font-weight:900;font-size:21px;line-height:1;text-transform:uppercase}
+.sn .f{font-size:10px;letter-spacing:2px;color:var(--o);text-transform:uppercase;margin-bottom:6px}
+.sn p{font-size:14px;color:var(--mute);line-height:1.45;margin-top:6px;white-space:pre-wrap;-webkit-user-select:text;user-select:text}
+.sn .tags{margin-top:6px}
+.sn .tags span{display:inline-block;font-size:9px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--o);color:var(--o);padding:2px 6px;margin:2px 4px 0 0}
+.sn .acc{margin-top:8px}
+.sn .acc button{font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-right:14px;color:var(--blue)}
+.sn .acc button.d{color:#ff3355}
+.ia{white-space:pre-wrap;font-size:14px;line-height:1.5;-webkit-user-select:text;user-select:text}
+#bloqueo{display:none}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" id="back" href="index.html">‹ Inicio</a><h1>Sueños</h1><button class="act" id="ia-top">Patrones</button></div>
+  <div class="wrap">
+
+    <!-- iOS 12 no deja usar el micrófono en apps de pantalla de inicio -->
+    <div class="blk b" id="bloqueo">
+      <div class="tagl">Micrófono</div>
+      <p style="font-size:14px;line-height:1.5;margin-bottom:12px">En iOS 12, las apps agregadas a la pantalla de inicio no pueden usar el micrófono. Sueños funciona abierto en Safari, y ahí quedan guardados tus sueños y audios.</p>
+      <button class="btn b" onclick="LZ.enSafari()">Abrir Sueños en Safari</button>
+      <div class="hint">Tip: en Safari, tocá Compartir › "Agregar a favoritos" para volver rápido.</div>
+    </div>
+
+    <div id="app">
+      <div class="blk o">
+        <div class="tagl" id="hoy-lab">Nuevo sueño</div>
+        <input class="field" id="tit" placeholder="Título (opcional)">
+        <textarea class="field" id="txt" placeholder="Escribí o tocá el micrófono del teclado para dictar…"></textarea>
+        <div id="rec-zone">
+          <button id="rec">REC</button>
+          <div id="rec-info"><div id="rec-t">0:00</div><div class="unit" id="rec-st">Grabá una nota de voz</div><div id="nivel"><i></i></div></div>
+        </div>
+        <div id="clips-nuevos"></div>
+        <label class="l">Etiquetas</label>
+        <div class="seg wrapit" id="tags"></div>
+        <label class="l">Sensación al despertar</label>
+        <div class="seg wrapit" id="sens"><button data-v="Calma">Calma</button><button data-v="Inquietud">Inquietud</button><button data-v="Miedo">Miedo</button><button data-v="Euforia">Euforia</button><button data-v="Extrañeza">Extrañeza</button></div>
+        <button class="btn" id="guardar">Guardar sueño</button>
+      </div>
+
+      <div class="blk b" id="ia-box" style="display:none">
+        <div class="tagl b" id="ia-tit">Claude</div>
+        <div class="ia" id="ia-txt"></div>
+      </div>
+
+      <div class="row" style="align-items:flex-end;margin:6px 0 10px">
+        <div><div class="unit">Cuaderno</div><div class="out" id="cnt">0</div></div>
+        <div style="flex:2"><input class="field" id="buscar" placeholder="Buscar…" style="margin:0"></div>
+      </div>
+      <div id="lista"></div>
+    </div>
+  </div>
+</div>
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$, esc=LZ.esc;
+var SN=LZ.get('suenos',[]), nuevos=[], rec=null;
+var TAGS=['Lúcido','Pesadilla','Recurrente','Volar','Caer','Agua','Casa','Animales','Personas','Colores','Absurdo','Doble'];
+var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+// en la app de inicio no hay micrófono: se usa desde Safari
+if(LZ.standalone){ $('bloqueo').style.display='block'; $('app').style.display='none'; $('ia-top').style.display='none'; }
+else $('back').style.visibility = 'hidden'; // en Safari se vuelve a Lienzo con el botón de inicio
+
+$('tags').innerHTML=TAGS.map(function(t){ return '<button data-v="'+t+'">'+t+'</button>'; }).join('');
+$('tags').addEventListener('click', function(e){ if(e.target.tagName==='BUTTON') e.target.classList.toggle('on'); });
+$('sens').addEventListener('click', function(e){ if(e.target.tagName!=='BUTTON') return; var on=e.target.classList.contains('on'), b=this.children; for(var i=0;i<b.length;i++) b[i].classList.remove('on'); if(!on) e.target.classList.add('on'); });
+function sel(id){ var r=[], b=$(id).children; for(var i=0;i<b.length;i++) if(b[i].classList.contains('on')) r.push(b[i].getAttribute('data-v')); return r; }
+function limpiarSel(id){ var b=$(id).children; for(var i=0;i<b.length;i++) b[i].classList.remove('on'); }
+function fecha(t){ var d=new Date(t); return d.getDate()+' '+MESES[d.getMonth()]+' '+d.getFullYear()+' · '+LZ.pad(d.getHours())+':'+LZ.pad(d.getMinutes()); }
+
+// ---------- Grabación (Web Audio + WAV, porque Safari 12 no tiene MediaRecorder) ----------
+var MAX_SEG=15*60;
+function iniciarRec(){
+  if(!LZ.media){ LZ.toast('Este navegador no permite el micrófono'); return; }
+  var c=LZ.audio(); if(!c){ LZ.toast('Sin audio web'); return; }
+  LZ.desbloquear();
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    var src=c.createMediaStreamSource(stream);
+    var proc=(c.createScriptProcessor||c.createJavaScriptNode).call(c, 4096, 1, 1);
+    var factor=Math.max(1, Math.round(c.sampleRate/16000)), resto=[], partes=[], muestras=0;
+    proc.onaudioprocess=function(e){
+      var d=e.inputBuffer.getChannelData(0), s=0, i;
+      for(i=0;i<d.length;i+=64) s+=d[i]*d[i];
+      $('nivel').firstChild.style.width=Math.min(100, Math.sqrt(s/(d.length/64))*260)+'%';
+      // baja a ~16 kHz promediando, y guarda en 16 bits para ahorrar memoria
+      var all = resto.length ? resto.concat(Array.prototype.slice.call(d)) : d;
+      var n=Math.floor(all.length/factor), out=new Int16Array(n);
+      for(i=0;i<n;i++){ var a=0; for(var k=0;k<factor;k++) a+=all[i*factor+k]; a/=factor; a=Math.max(-1,Math.min(1,a)); out[i]=a<0?a*32768:a*32767; }
+      resto=Array.prototype.slice.call(all, n*factor);
+      partes.push(out); muestras+=n;
+    };
+    src.connect(proc); proc.connect(c.destination);
+    rec={stream:stream, src:src, proc:proc, partes:partes, rate:c.sampleRate/factor, t0:Date.now(), get n(){ return muestras; }};
+    $('rec').classList.add('on'); $('rec').textContent='STOP'; $('rec-st').textContent='Grabando…';
+    rec.timer=setInterval(function(){ var s=Math.floor((Date.now()-rec.t0)/1000); $('rec-t').textContent=Math.floor(s/60)+':'+LZ.pad(s%60); if(s>=MAX_SEG) pararRec(); }, 250);
+  }).catch(function(){ LZ.toast('Sin permiso de micrófono. Revisá Ajustes › Safari › Micrófono'); });
+}
+function wav(partes, total, rate){
+  var buf=new ArrayBuffer(44+total*2), v=new DataView(buf), o=44;
+  function str(p,s){ for(var i=0;i<s.length;i++) v.setUint8(p+i, s.charCodeAt(i)); }
+  str(0,'RIFF'); v.setUint32(4,36+total*2,true); str(8,'WAVE'); str(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,rate,true); v.setUint32(28,rate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); str(36,'data'); v.setUint32(40,total*2,true);
+  partes.forEach(function(p){ for(var i=0;i<p.length;i++){ v.setInt16(o,p[i],true); o+=2; } });
+  return buf;
+}
+function pararRec(){
+  if(!rec) return;
+  clearInterval(rec.timer);
+  try{ rec.src.disconnect(); rec.proc.disconnect(); }catch(e){}
+  rec.stream.getTracks().forEach(function(t){ t.stop(); });
+  var dur=Math.round((Date.now()-rec.t0)/1000), total=rec.n;
+  if(total>1600){ var id=LZ.uid(), buf=wav(rec.partes, total, Math.round(rec.rate)); nuevos.push({id:id, dur:dur, buf:buf}); pintarNuevos(); }
+  rec=null;
+  $('rec').classList.remove('on'); $('rec').textContent='REC'; $('rec-t').textContent='0:00'; $('rec-st').textContent=nuevos.length ? nuevos.length+' audio(s) para este sueño' : 'Grabá una nota de voz';
+  $('nivel').firstChild.style.width='0';
+}
+$('rec').addEventListener('click', function(){ if(rec) pararRec(); else iniciarRec(); });
+function urlAudio(buf){ return URL.createObjectURL(new Blob([buf], {type:'audio/wav'})); }
+function pintarNuevos(){
+  $('clips-nuevos').innerHTML=nuevos.map(function(c,i){ return '<div class="clip"><audio controls preload="none" src="'+urlAudio(c.buf)+'"></audio><button onclick="nuevos.splice('+i+',1);pintarNuevos()">Quitar</button></div>'; }).join('');
+}
+
+// ---------- Guardar ----------
+$('guardar').addEventListener('click', function(){
+  if(rec) pararRec();
+  var t=$('txt').value.trim(), ti=$('tit').value.trim();
+  if(!t && !nuevos.length){ LZ.toast('Escribí algo o grabá un audio'); return; }
+  var s={id:LZ.uid(), t:Date.now(), titulo:ti, texto:t, tags:sel('tags'), sens:sel('sens')[0]||'', clips:nuevos.map(function(c){ return {id:c.id, dur:c.dur}; })};
+  Promise.all(nuevos.map(function(c){ return LZ.iset('aud_'+c.id, c.buf); })).then(function(){
+    SN.push(s); LZ.set('suenos',SN);
+    $('txt').value=''; $('tit').value=''; nuevos=[]; pintarNuevos(); limpiarSel('tags'); limpiarSel('sens');
+    $('rec-st').textContent='Grabá una nota de voz';
+    LZ.toast('Sueño guardado'); pintar();
+  }).catch(function(){ LZ.toast('No pude guardar el audio (memoria llena)'); });
+});
+
+// ---------- Lista ----------
+function pintar(){
+  var q=$('buscar').value.trim().toLowerCase();
+  $('cnt').textContent=SN.length;
+  var vis=SN.slice().reverse().filter(function(s){ return !q || (s.titulo+' '+s.texto+' '+s.tags.join(' ')+' '+s.sens).toLowerCase().indexOf(q)>=0; });
+  if(!SN.length){ $('lista').innerHTML='<div class="empty">Todavía no anotaste sueños.<br>Lo mejor es hacerlo apenas te despertás.</div>'; return; }
+  $('lista').innerHTML=vis.map(function(s){
+    return '<div class="sn"><div class="f">'+fecha(s.t)+(s.sens?' · '+esc(s.sens):'')+'</div>'+(s.titulo?'<h3>'+esc(s.titulo)+'</h3>':'')+(s.texto?'<p>'+esc(s.texto)+'</p>':'')+
+      (s.tags.length?'<div class="tags">'+s.tags.map(function(t){ return '<span>'+esc(t)+'</span>'; }).join('')+'</div>':'')+
+      '<div id="cl-'+s.id+'">'+(s.clips.length?'<div class="hint">'+s.clips.length+' audio(s) · tocá "Audios"</div>':'')+'</div>'+
+      '<div class="acc">'+(s.clips.length?'<button onclick="audios(\''+s.id+'\')">Audios</button>':'')+(s.texto?'<button onclick="aObra(\''+s.id+'\')">Idea de obra</button>':'')+'<button class="d" onclick="borrar(\''+s.id+'\')">Borrar</button></div></div>';
+  }).join('');
+}
+$('buscar').addEventListener('input', pintar);
+function audios(id){
+  var s=SN.filter(function(x){ return x.id===id; })[0], el=$('cl-'+id); el.innerHTML='<div class="hint">Cargando…</div>';
+  Promise.all(s.clips.map(function(c){ return LZ.iget('aud_'+c.id); })).then(function(bufs){
+    el.innerHTML=bufs.map(function(b,i){ return b ? '<div class="clip"><audio controls src="'+urlAudio(b)+'"></audio><span class="unit" style="margin-left:8px">'+Math.floor(s.clips[i].dur/60)+':'+LZ.pad(s.clips[i].dur%60)+'</span></div>' : ''; }).join('');
+  });
+}
+function borrar(id){
+  if(!confirm('¿Borrar este sueño y sus audios?')) return;
+  var s=SN.filter(function(x){ return x.id===id; })[0];
+  s.clips.forEach(function(c){ LZ.idel('aud_'+c.id); });
+  SN=SN.filter(function(x){ return x.id!==id; }); LZ.set('suenos',SN); pintar();
+}
+
+// ---------- Claude ----------
+function asegurarClave(){ if(LZ.get('key','')) return true; return LZ.pedirClave(); }
+function mostrarIA(tit, txt){ $('ia-box').style.display='block'; $('ia-tit').textContent=tit; $('ia-txt').textContent=txt; $('ia-box').scrollIntoView(); }
+var SIS='Acompañás el cuaderno de sueños de un artista visual (tinta, acrílico, acuarela, pastel y crayón; temas: lo onírico, lo absurdo, la identidad y la dualidad). No hacés diagnósticos ni interpretaciones psicológicas cerradas: mirás imágenes, símbolos y climas como material creativo. Español rioplatense, sin emojis, sin markdown.';
+function aObra(id){
+  if(!asegurarClave()) return;
+  var s=SN.filter(function(x){ return x.id===id; })[0];
+  mostrarIA('Idea de obra', 'Pensando…');
+  LZ.claude({max_tokens:600, system:SIS, messages:[{role:'user', content:'A partir de este sueño, proponé una obra: composición (qué hay y dónde), paleta concreta, técnica de las que usa, formato y un título. Breve y concreto.\n\nSueño: '+(s.titulo?s.titulo+'. ':'')+s.texto+(s.tags.length?' (etiquetas: '+s.tags.join(', ')+')':'')}]})
+    .then(function(j){ mostrarIA('Idea de obra', LZ.texto(j)); }).catch(function(e){ mostrarIA('Error', LZ.error(e)); });
+}
+$('ia-top').addEventListener('click', function(){
+  var con=SN.filter(function(s){ return s.texto; }).slice(-30);
+  if(con.length<2){ LZ.toast('Necesito al menos 2 sueños escritos'); return; }
+  if(!asegurarClave()) return;
+  mostrarIA('Patrones', 'Leyendo tu cuaderno…');
+  var corpus=con.map(function(s){ return '['+fecha(s.t)+'] '+(s.titulo?s.titulo+': ':'')+s.texto+(s.tags.length?' #'+s.tags.join(' #'):'')+(s.sens?' (al despertar: '+s.sens+')':''); }).join('\n');
+  LZ.claude({max_tokens:900, system:SIS, messages:[{role:'user', content:'Leé estos sueños y contame: símbolos o imágenes que se repiten, climas dominantes, contrastes o dualidades que aparezcan, y 3 ideas de serie de obras que salgan de ahí. Breve, en párrafos cortos.\n\n'+corpus}]})
+    .then(function(j){ mostrarIA('Patrones', LZ.texto(j)); }).catch(function(e){ mostrarIA('Error', LZ.error(e)); });
+});
+var d=new Date(); $('hoy-lab').textContent='Nuevo sueño · '+d.getDate()+' '+MESES[d.getMonth()];
+pintar();
+</script>
+</body>
+</html>

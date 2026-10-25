@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lienzo">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+/* ---------- Fondo: negro con grilla naranja cruda ---------- */
+#wall{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:var(--bg);
+  background-image:linear-gradient(rgba(255,106,0,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,106,0,.07) 1px,transparent 1px);
+  background-size:31px 31px,31px 31px}
+
+/* ---------- Inicio ---------- */
+#home{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;display:flex;flex-direction:column}
+#widget{background:var(--o);color:#000;padding:calc(env(safe-area-inset-top) + 22px) 16px 0;flex-shrink:0}
+.w-row{display:flex;justify-content:space-between;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+#hora{font-family:var(--disp);font-weight:900;font-size:98px;line-height:.86;letter-spacing:-3px;margin:8px 0 6px}
+.w-bot{border-top:3px solid #000;padding:7px 0 9px}
+#pages{flex:1;overflow-x:auto;overflow-y:hidden;white-space:nowrap;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;-webkit-scroll-snap-type:mandatory}
+#pages::-webkit-scrollbar{display:none}
+.page{display:inline-block;vertical-align:top;width:100%;white-space:normal;padding:16px 10px 0;scroll-snap-align:start}
+.grid{display:flex;flex-wrap:wrap}
+.app{width:25%;padding:6px 4px 10px;text-align:center}
+.ic{width:60px;height:60px;margin:0 auto;background:#050505;border:2px solid var(--blue);box-shadow:var(--glow);
+  display:flex;align-items:center;justify-content:center;color:var(--o)}
+.ic svg{width:36px;height:36px;overflow:visible}
+.ic .bl{stroke:var(--blue)}
+.ic .blf{fill:var(--blue)}
+.ic.main{background:var(--o);color:#000}
+.ic.main .bl{stroke:#000}
+.app span{display:block;font-size:9px;font-weight:700;margin-top:8px;color:var(--ink);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;overflow:hidden}
+.app:active .ic{background:var(--o);color:#000}
+#dots{text-align:center;padding:2px 0 10px;flex-shrink:0}
+#dots i{display:inline-block;width:18px;height:4px;margin:0 3px;background:var(--line)}
+#dots i.on{background:var(--o)}
+#dock{flex-shrink:0;background:#000;border-top:3px solid var(--o);padding:10px 10px calc(env(safe-area-inset-bottom) + 12px);display:flex}
+#dock .app{padding:4px}
+#dock .app span{display:none}
+
+/* ---------- Pantallas internas ---------- */
+.screen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;
+  -webkit-transform:translateX(100%);transform:translateX(100%);transition:-webkit-transform .22s ease-out,transform .22s ease-out}
+.screen.on{-webkit-transform:none;transform:none}
+
+/* ---------- Claude ---------- */
+#msgs{padding-bottom:8px}
+.msg{max-width:88%;padding:10px 12px;margin:7px 0;font-size:15px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word;-webkit-user-select:text;user-select:text}
+.msg.u{margin-left:auto;background:var(--o);color:#000}
+.msg.a{background:var(--panel);border-left:3px solid var(--blue)}
+.msg.s{max-width:100%;color:var(--dim);font-size:10px;text-align:center;padding:4px;text-transform:uppercase;letter-spacing:2px}
+.msg b{color:var(--o)}
+.msg.u b{color:#000}
+.msg img{max-width:100%;display:block;margin-bottom:6px;border:2px solid #000}
+.accion{display:inline-block;padding:9px 14px;border:2px solid var(--blue);color:var(--blue);box-shadow:var(--glow);font-size:12px;text-transform:uppercase;letter-spacing:1.5px}
+.dots span{display:inline-block;width:9px;height:15px;margin-right:4px;background:var(--o);-webkit-animation:pk 1s steps(2) infinite;animation:pk 1s steps(2) infinite}
+.dots span:nth-child(2){-webkit-animation-delay:.2s;animation-delay:.2s}
+.dots span:nth-child(3){-webkit-animation-delay:.4s;animation-delay:.4s}
+@-webkit-keyframes pk{50%{opacity:.15}} @keyframes pk{50%{opacity:.15}}
+#composer{display:flex;align-items:flex-end;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);border-top:3px solid var(--o);background:var(--bg);flex-shrink:0}
+#composer textarea{flex:1;resize:none;max-height:110px;padding:9px 10px;border:2px solid var(--line);background:#000;font-size:16px;line-height:1.3;outline:0}
+#composer textarea:focus{border-color:var(--o)}
+#composer button{width:42px;height:42px;flex-shrink:0;font-size:11px;font-weight:700;letter-spacing:1px}
+#foto-btn{border:2px solid var(--blue);color:var(--blue);margin-right:8px}
+#send{background:var(--o);color:#000;margin-left:8px;font-size:18px}
+#adjunto{display:none;padding:8px 14px 0;font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:1.5px}
+.top .act.off{color:var(--dim)}
+.top .acts{width:84px;text-align:right}
+.top .acts button{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--blue);padding:4px 0 4px 8px}
+
+/* ---------- Notas / Tareas / Clima ---------- */
+.item{border:2px solid var(--line);border-left:5px solid var(--o);padding:12px 14px;margin-bottom:10px;background:var(--panel)}
+.item h3{font-family:var(--disp);font-weight:900;font-size:20px;text-transform:uppercase;margin-bottom:5px;color:var(--ink);line-height:1}
+.item p{font-size:14px;color:var(--mute);white-space:pre-wrap;line-height:1.45;-webkit-user-select:text;user-select:text}
+.item small{display:block;color:var(--dim);font-size:10px;margin-top:8px;letter-spacing:1.5px}
+.item .del{float:right;color:#ff3355;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.tarea{display:flex;align-items:center}
+.tarea .chk{width:22px;height:22px;border:2px solid var(--o);margin-right:12px;flex-shrink:0;text-align:center;line-height:18px;font-size:13px;font-weight:700}
+.tarea.hecha{border-left-color:var(--line)}
+.tarea.hecha .chk{background:var(--o);color:#000}
+.tarea.hecha .t{text-decoration:line-through;color:var(--dim)}
+.tarea .t{flex:1;font-size:15px}
+.clima-hoy{background:var(--o);color:#000;padding:16px;margin-bottom:12px}
+.clima-hoy .t{font-family:var(--disp);font-weight:900;font-size:110px;line-height:.85;letter-spacing:-4px}
+.clima-hoy .d{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.dia{display:flex;padding:13px 0;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:1.5px}
+.dia b{flex:1;font-weight:400}
+.dia i{font-style:normal;width:56px;color:var(--blue)}
+.dia em{font-style:normal;width:84px;text-align:right;color:var(--o)}
+</style>
+</head>
+<body>
+<div id="wall"></div>
+
+<!-- INICIO -->
+<main id="home">
+  <section id="widget">
+    <div class="w-row"><span>Lienzo/OS</span><span>iPhone 6 · A8</span></div>
+    <div id="hora">00:00</div>
+    <div class="w-row w-bot"><span id="fecha"></span><span id="clima-w"></span></div>
+  </section>
+  <div class="stripes"></div>
+  <div id="pages"></div>
+  <div id="dots"></div>
+  <nav id="dock"></nav>
+</main>
+
+<!-- CLAUDE -->
+<section class="screen" id="chat">
+  <div class="top"><button class="back" onclick="cerrar()">‹ Inicio</button><h1>Claude</h1>
+    <div class="acts"><button id="voz-btn" onclick="alternarVoz()">Voz</button><button onclick="nuevaCharla()">+</button></div></div>
+  <div class="wrap" id="msgs"></div>
+  <div id="adjunto">[img] Foto lista · <a href="#" onclick="quitarFoto();return false" style="color:var(--o)">quitar</a></div>
+  <div id="composer">
+    <button id="foto-btn" onclick="document.getElementById('foto-in').click()">IMG</button>
+    <input type="file" id="foto-in" accept="image/*" style="display:none">
+    <textarea id="txt" rows="1" placeholder="Pensá en voz alta…"></textarea>
+    <button id="send" onclick="enviar()">›</button>
+  </div>
+</section>
+
+<!-- NOTAS -->
+<section class="screen" id="notas">
+  <div class="top"><button class="back" onclick="cerrar()">‹ Inicio</button><h1>Notas</h1><button class="act" onclick="nuevaNota()">Nueva</button></div>
+  <div class="wrap" id="notas-l"></div>
+</section>
+
+<!-- TAREAS -->
+<section class="screen" id="tareas">
+  <div class="top"><button class="back" onclick="cerrar()">‹ Inicio</button><h1>Tareas</h1><button class="act" onclick="limpiarHechas()">Limpiar</button></div>
+  <div class="wrap">
+    <input class="field" id="tarea-in" placeholder="Nueva tarea y Enter">
+    <div id="tareas-l"></div>
+  </div>
+</section>
+
+<!-- CLIMA -->
+<section class="screen" id="clima">
+  <div class="top"><button class="back" onclick="cerrar()">‹ Inicio</button><h1>Clima</h1><button class="act" onclick="cargarClima(true)">Recargar</button></div>
+  <div class="wrap" id="clima-l"><div class="empty">Cargando…</div></div>
+</section>
+
+<!-- AJUSTES -->
+<section class="screen" id="ajustes">
+  <div class="top"><button class="back" onclick="cerrar()">‹ Inicio</button><h1>Ajustes</h1><span class="act"></span></div>
+  <div class="wrap">
+    <div class="blk">
+      <div class="tagl">Clave de la API</div>
+      <input class="field" id="key-in" type="password" placeholder="sk-ant-…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="hint">Se guarda solo en este teléfono. La sacás en console.anthropic.com › API Keys.</div>
+    </div>
+    <div class="blk">
+      <div class="tagl">Modelo</div>
+      <select class="field" id="modelo-in">
+        <option value="claude-haiku-5-5">Haiku 5.5 · rápido y barato</option>
+        <option value="claude-sonnet-5-5">Sonnet 5.5 · equilibrado</option>
+        <option value="claude-opus-5-5">Opus 5.5 · el más capaz</option>
+      </select>
+      <label class="l">Tu nombre</label>
+      <input class="field" id="nombre-in" placeholder="Cómo querés que te llame">
+      <label class="l">Claude lee las respuestas en voz alta</label>
+      <div class="seg" id="voz-seg"><button data-v="1">Sí</button><button data-v="0">No</button></div>
+    </div>
+    <button class="btn" onclick="guardarAjustes()">Guardar</button>
+    <div class="blk mt">
+      <div class="tagl">Datos</div>
+      <button class="btn r" onclick="borrarTodo()">Borrar notas, tareas y charlas</button>
+      <div class="hint">Obras, sueños, sesiones del crono y juegos se guardan aparte, dentro de cada app.</div>
+    </div>
+  </div>
+</section>
+
+<script src="lienzo.js"></script>
+<script>
+/* =========================================================
+   Lienzo · inicio + Claude
+   ========================================================= */
+var $ = LZ.$, esc = LZ.esc, leer = LZ.get, guardar = LZ.set, uid = LZ.uid;
+var S = {
+  key: leer('key',''), modelo: leer('modelo','claude-haiku-5-5'), nombre: leer('nombre',''), voz: leer('voz', false),
+  notas: leer('notas',[]), tareas: leer('tareas',[]), historial: leer('historial',[]), chatVista: leer('chatVista',[])
+};
+
+// ---------- Íconos (trazos naranjas, detalles en neón azul) ----------
+var I = {
+  chat:'<path d="M4 6h24v15H14l-6 5v-5H4z"/><path class="bl" d="M10 11l3.5 2.5L10 16"/><path class="bl" d="M16 16h6"/>',
+  spotify:'<path d="M6 20v-4a10 10 0 0 1 20 0v4"/><path d="M4 18h5v9H4zM23 18h5v9h-5z"/><path class="bl" d="M13 22v3M16 20v5M19 23v2"/>',
+  youtube:'<path d="M3 9h26v17H3z"/><path d="M11 4l5 5 5-5"/><path class="blf" stroke="none" d="M13 13v9l8-4.5z"/><path d="M6 29h20"/>',
+  obras:'<path d="M5 4h22v17H5z"/><path class="bl" d="M8 18l5-6 4 4 3-3 4 5"/><circle class="blf" stroke="none" cx="21.5" cy="8.5" r="1.8"/><path d="M10 21l-3 8M22 21l3 8M16 21v6"/>',
+  suenos:'<path d="M15 5a11 11 0 1 0 12 15A9 9 0 0 1 15 5z"/><path class="bl" d="M20 4h6l-6 6h6"/><path class="bl" d="M24 13h3l-3 3h3"/>',
+  gaffer:'<path d="M7 3h18v26H7z"/><path class="bl" d="M10 6h12v6H10z"/><path class="bl" d="M17 7l-2.5 2.2h3L15 11.2"/><path fill="currentColor" stroke="none" d="M10 15h3v3h-3zM14.5 15h3v3h-3zM19 15h3v3h-3zM10 19.5h3v3h-3zM14.5 19.5h3v3h-3zM10 24h7.5v3H10z"/><path class="blf" stroke="none" d="M19 19.5h3v7.5h-3z"/>',
+  metronomo:'<path d="M11 3h10l6 26H5z"/><path d="M7 23h18"/><path class="bl" d="M16 21L23 7"/><path class="blf" stroke="none" d="M19 12.5l2.6 1.2-1.2 2.6-2.6-1.2z"/>',
+  crono:'<circle cx="16" cy="18" r="11"/><path d="M13 3h6M16 3v4M25 8l2-2"/><path class="bl" d="M16 18v-6M16 18l4 3"/>',
+  marcos:'<path d="M3 3h26v26H3z"/><path d="M8 8h16v16H8z"/><path class="blf" stroke="none" d="M11.5 11.5h9v9h-9z"/>',
+  ojos:'<path d="M2 16c3-6 9-6 12 0-3 6-9 6-12 0zM18 16c3-6 9-6 12 0-3 6-9 6-12 0z"/><circle class="blf" stroke="none" cx="8" cy="16" r="2.6"/><circle class="blf" stroke="none" cx="24" cy="16" r="2.6"/>',
+  juegos:'<path d="M8 10h16a5 5 0 0 1 5 5v5a4 4 0 0 1-7 2.6L20 20h-8l-2 2.6A4 4 0 0 1 3 20v-5a5 5 0 0 1 5-5z"/><path class="bl" d="M10 13.5v5M7.5 16h5"/><circle class="blf" stroke="none" cx="21" cy="14.5" r="1.5"/><circle class="blf" stroke="none" cx="24.5" cy="17.5" r="1.5"/>',
+  notas:'<path d="M7 3h13l6 6v20H7z"/><path d="M20 3v6h6"/><path class="bl" d="M11 15h11M11 19h11M11 23h7"/>',
+  tareas:'<path d="M5 5h6v6H5zM5 13h6v6H5zM5 21h6v6H5z"/><path class="bl" d="M6.5 8l1.5 1.5L10.5 6.5M6.5 16l1.5 1.5 2.5-3"/><path d="M15 8h12M15 16h12M15 24h9"/>',
+  clima:'<circle class="bl" cx="12" cy="11" r="4"/><path class="bl" d="M12 3v2M4 11h2M6.3 5.3l1.4 1.4M17.7 5.3l-1.4 1.4"/><path d="M9 27h15a5 5 0 0 0 0-10 7 7 0 0 0-13-1 5.5 5.5 0 0 0-2 11z"/>',
+  ajustes:'<circle cx="16" cy="16" r="7"/><circle class="bl" cx="16" cy="16" r="2.5"/><path d="M16 3v5M16 24v5M3 16h5M24 16h5M6.8 6.8l3.5 3.5M21.7 21.7l3.5 3.5M6.8 25.2l3.5-3.5M21.7 10.3l3.5-3.5"/>',
+  telefono:'<path d="M9 3l4 1 1.5 6.5-3.5 2a15 15 0 0 0 9.5 9.5l2-3.5L29 20l1 4c0 2.5-2.5 5-5 5C14 29 3 18 3 7c0-2.5 2.5-4 6-4z"/>',
+  mensajes:'<path d="M3 5h26v17H13l-7 6v-6H3z"/><circle class="blf" stroke="none" cx="10" cy="13.5" r="1.6"/><circle class="blf" stroke="none" cx="16" cy="13.5" r="1.6"/><circle class="blf" stroke="none" cx="22" cy="13.5" r="1.6"/>',
+  mail:'<path d="M3 7h26v18H3z"/><path class="bl" d="M3 7l13 10L29 7"/>',
+  mapas:'<path d="M16 30s-9-9.5-9-16a9 9 0 0 1 18 0c0 6.5-9 16-9 16z"/><circle class="bl" cx="16" cy="14" r="3.5"/>',
+  musica:'<path d="M12 24V7l15-3v17"/><circle class="bl" cx="8.5" cy="24" r="3.5"/><circle class="bl" cx="23.5" cy="21" r="3.5"/>',
+  fotos:'<path d="M3 10h7l2.5-4h7L22 10h7v16H3z"/><circle class="bl" cx="16" cy="17.5" r="5"/><path d="M25 13h1"/>',
+  web:'<circle cx="16" cy="16" r="13"/><path class="bl" d="M16 3c-6 7-6 19 0 26M16 3c6 7 6 19 0 26M3 16h26"/><path d="M5 10h22M5 22h22"/>'
+};
+function svg(id){ return '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter">'+I[id]+'</svg>'; }
+
+// ---------- Apps ----------
+// s = pantalla interna · p = página aparte · u = enlace externo
+var APPS = [
+  {id:'chat',     n:'Claude',     s:1, dock:1},
+  {id:'obras',    n:'Obras',      p:'obras.html',     pg:0},
+  {id:'suenos',   n:'Sueños',     p:'suenos.html',    pg:0},
+  {id:'marcos',   n:'Marcos',     p:'marcos.html',    pg:0},
+  {id:'gaffer',   n:'Gaffer',     p:'gaffer.html',    pg:0},
+  {id:'metronomo',n:'Metrónomo',  p:'metronomo.html', pg:0},
+  {id:'crono',    n:'Crono',      p:'crono.html',     pg:0},
+  {id:'ojos',     n:'Ojos',       p:'ojos.html',      pg:0},
+  {id:'juegos',   n:'Juegos',     p:'juegos.html',    pg:0},
+  {id:'youtube',  n:'YouTube',    u:'https://m.youtube.com/', pg:0},
+  {id:'notas',    n:'Notas',      s:1, pg:0},
+  {id:'tareas',   n:'Tareas',     s:1, pg:0},
+  {id:'clima',    n:'Clima',      s:1, pg:0},
+  {id:'telefono', n:'Teléfono',   u:'tel:',  dock:1},
+  {id:'mensajes', n:'Mensajes',   u:'sms:',  dock:1},
+  {id:'spotify',  n:'Spotify',    u:'https://open.spotify.com/', dock:1},
+  {id:'mail',     n:'Mail',       u:'mailto:', pg:1},
+  {id:'mapas',    n:'Mapas',      u:'https://maps.apple.com/', pg:1},
+  {id:'musica',   n:'Música',     u:'music://', pg:1},
+  {id:'fotos',    n:'Fotos',      u:'photos-redirect://', pg:1},
+  {id:'web',      n:'Web',        u:'https://www.google.com/', pg:1},
+  {id:'ajustes',  n:'Ajustes',    s:1, pg:1}
+];
+function app(id){ return APPS.filter(function(a){ return a.id === id; })[0]; }
+function icono(a){
+  return '<button class="app" onclick="abrir(\''+a.id+'\')"><div class="ic'+(a.id==='chat'?' main':'')+'">'+svg(a.id)+'</div><span>'+a.n+'</span></button>';
+}
+function pintarInicio(){
+  var p0='', p1='', d='';
+  APPS.forEach(function(a){ if(a.dock) d+=icono(a); else if(a.pg) p1+=icono(a); else p0+=icono(a); });
+  $('pages').innerHTML='<div class="page"><div class="grid">'+p0+'</div></div><div class="page"><div class="grid">'+p1+'</div></div>';
+  $('dock').innerHTML=d;
+  $('dots').innerHTML='<i class="on"></i><i></i>';
+  $('pages').addEventListener('scroll', function(){
+    var i=Math.round(this.scrollLeft/this.clientWidth), ds=$('dots').children;
+    for(var k=0;k<ds.length;k++) ds[k].className = k===i ? 'on' : '';
+  });
+}
+var abierta=null;
+function abrir(id){
+  var a=app(id); if(!a) return;
+  if(a.u){ window.location.href=a.u; return; }
+  if(a.p){ window.location.href=a.p; return; }
+  if(abierta) $(abierta).classList.remove('on');
+  abierta=id; $(id).classList.add('on');
+  if(id==='notas') pintarNotas();
+  if(id==='tareas') pintarTareas();
+  if(id==='clima') cargarClima(false);
+  if(id==='ajustes') pintarAjustes();
+  if(id==='chat'){ pintarChat(); if(!S.key) avisoSinClave(); }
+}
+function cerrar(){ if(abierta){ $(abierta).classList.remove('on'); abierta=null; } if(document.activeElement) document.activeElement.blur(); }
+
+// ---------- Reloj ----------
+var DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+var MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function reloj(){
+  var n=new Date();
+  $('hora').textContent=LZ.pad(n.getHours())+':'+LZ.pad(n.getMinutes());
+  $('fecha').textContent=DIAS[n.getDay()].slice(0,3)+' '+LZ.pad(n.getDate())+'.'+LZ.pad(n.getMonth()+1);
+}
+
+// ---------- Notas ----------
+function pintarNotas(){
+  if(!S.notas.length){ $('notas-l').innerHTML='<div class="empty">Sin notas.<br>Tocá "Nueva" o pedíselo a Claude.</div>'; return; }
+  $('notas-l').innerHTML=S.notas.slice().reverse().map(function(n){
+    return '<div class="item"><button class="del" onclick="borrarNota(\''+n.id+'\')">Borrar</button><h3>'+esc(n.titulo||'Sin título')+'</h3><p>'+esc(n.texto)+'</p><small>'+new Date(n.t).toLocaleDateString('es-AR')+'</small></div>';
+  }).join('');
+}
+function nuevaNota(){
+  $('notas-l').innerHTML='<input class="field" id="n-tit" placeholder="Título"><textarea class="field" id="n-txt" placeholder="Escribí…"></textarea><button class="btn" onclick="guardarNotaManual()">Guardar nota</button><div style="height:10px"></div><button class="btn g" onclick="pintarNotas()">Cancelar</button>';
+  $('n-tit').focus();
+}
+function guardarNotaManual(){ var t=$('n-txt').value.trim(); if(!t) return; agregarNota($('n-tit').value.trim(), t); pintarNotas(); }
+function agregarNota(titulo, texto){ var n={id:uid(), titulo:titulo, texto:texto, t:Date.now()}; S.notas.push(n); guardar('notas',S.notas); return n; }
+function borrarNota(id){ S.notas=S.notas.filter(function(n){return n.id!==id;}); guardar('notas',S.notas); pintarNotas(); }
+
+// ---------- Tareas ----------
+function pintarTareas(){
+  if(!S.tareas.length){ $('tareas-l').innerHTML='<div class="empty">Nada pendiente.</div>'; return; }
+  var ord=S.tareas.slice().sort(function(a,b){ return (a.hecha?1:0)-(b.hecha?1:0); });
+  $('tareas-l').innerHTML=ord.map(function(t){
+    return '<div class="item tarea'+(t.hecha?' hecha':'')+'" onclick="alternarTarea(\''+t.id+'\')"><div class="chk">'+(t.hecha?'X':'')+'</div><div class="t">'+esc(t.texto)+(t.fecha?'<small>'+esc(t.fecha)+'</small>':'')+'</div></div>';
+  }).join('');
+}
+function agregarTarea(texto, fecha){ var t={id:uid(), texto:texto, fecha:fecha||'', hecha:false}; S.tareas.push(t); guardar('tareas',S.tareas); return t; }
+function alternarTarea(id){ S.tareas.forEach(function(t){ if(t.id===id) t.hecha=!t.hecha; }); guardar('tareas',S.tareas); pintarTareas(); }
+function limpiarHechas(){ S.tareas=S.tareas.filter(function(t){return !t.hecha;}); guardar('tareas',S.tareas); pintarTareas(); }
+
+// ---------- Clima (Open-Meteo, sin clave) ----------
+var WMO={0:['CLR','Despejado'],1:['CLR','Casi despejado'],2:['NUB','Parcialmente nublado'],3:['NUB','Nublado'],45:['NIE','Niebla'],48:['NIE','Niebla'],
+  51:['LLV','Llovizna'],53:['LLV','Llovizna'],55:['LLV','Llovizna'],61:['LLV','Lluvia leve'],63:['LLV','Lluvia'],65:['LLV','Lluvia fuerte'],
+  71:['NEV','Nieve'],73:['NEV','Nieve'],75:['NEV','Nieve'],80:['LLV','Chaparrones'],81:['LLV','Chaparrones'],82:['TRM','Chaparrones fuertes'],95:['TRM','Tormenta'],96:['TRM','Tormenta'],99:['TRM','Tormenta']};
+function wmo(c){ return WMO[c]||['---','—']; }
+var climaDatos=leer('clima',null);
+function posicion(){
+  return new Promise(function(ok){
+    var def={lat:-34.6037, lon:-58.3816, nombre:'Buenos Aires'};
+    if(!navigator.geolocation) return ok(def);
+    navigator.geolocation.getCurrentPosition(function(p){ ok({lat:p.coords.latitude, lon:p.coords.longitude, nombre:'Tu ubicación'}); }, function(){ ok(def); }, {timeout:8000, maximumAge:3600000});
+  });
+}
+function cargarClima(forzar){
+  if(climaDatos && !forzar && Date.now()-climaDatos.t<30*60000){ pintarClima(); return Promise.resolve(); }
+  return posicion().then(function(p){
+    var u='https://api.open-meteo.com/v1/forecast?latitude='+p.lat+'&longitude='+p.lon+'&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=6';
+    return fetch(u).then(function(r){return r.json();}).then(function(j){ climaDatos={t:Date.now(), lugar:p.nombre, j:j}; guardar('clima',climaDatos); pintarClima(); });
+  }).catch(function(){ if(abierta==='clima') $('clima-l').innerHTML='<div class="empty">No pude cargar el clima.<br>Revisá la conexión.</div>'; });
+}
+function pintarClima(){
+  if(!climaDatos) return;
+  var j=climaDatos.j, c=j.current, w=wmo(c.weather_code), d=j.daily;
+  $('clima-w').textContent=Math.round(c.temperature_2m)+'° '+w[0];
+  var h='<div class="clima-hoy"><div class="d">'+esc(climaDatos.lugar)+'</div><div class="t">'+Math.round(c.temperature_2m)+'°</div><div class="d">'+esc(w[1])+'</div></div>';
+  for(var i=0;i<d.time.length;i++){
+    var f=new Date(d.time[i]+'T12:00:00'), x=wmo(d.weather_code[i]);
+    h+='<div class="dia"><b>'+(i===0?'hoy':DIAS[f.getDay()])+'</b><i>'+x[0]+'</i><em>'+Math.round(d.temperature_2m_min[i])+'° / '+Math.round(d.temperature_2m_max[i])+'°</em></div>';
+  }
+  $('clima-l').innerHTML=h;
+}
+
+// ---------- Ajustes ----------
+var vozTmp=S.voz;
+function pintarAjustes(){
+  $('key-in').value=S.key; $('modelo-in').value=S.modelo; $('nombre-in').value=S.nombre; vozTmp=S.voz; pintarVozSeg();
+}
+function pintarVozSeg(){ var b=$('voz-seg').children; for(var i=0;i<b.length;i++) b[i].className = (b[i].getAttribute('data-v')==='1')===vozTmp ? 'on' : ''; }
+$('voz-seg').addEventListener('click', function(e){ var v=e.target.getAttribute('data-v'); if(v===null) return; vozTmp = v==='1'; pintarVozSeg(); });
+function guardarAjustes(){
+  S.key=$('key-in').value.trim(); S.modelo=$('modelo-in').value; S.nombre=$('nombre-in').value.trim(); S.voz=vozTmp;
+  guardar('key',S.key); guardar('modelo',S.modelo); guardar('nombre',S.nombre); guardar('voz',S.voz);
+  pintarVozBtn(); cerrar(); LZ.toast('Guardado');
+}
+function borrarTodo(){
+  if(!confirm('¿Borrar notas, tareas y charlas? No se puede deshacer.')) return;
+  S.notas=[]; S.tareas=[]; S.historial=[]; S.chatVista=[];
+  guardar('notas',[]); guardar('tareas',[]); guardar('historial',[]); guardar('chatVista',[]);
+  LZ.toast('Borrado');
+}
+
+// =========================================================
+//   CLAUDE: compañero de ideas + control del launcher
+// =========================================================
+var HERRAMIENTAS=[
+  {name:'crear_nota', description:'Guarda una nota en la app Notas.',
+   input_schema:{type:'object', properties:{titulo:{type:'string'}, texto:{type:'string'}}, required:['texto']}},
+  {name:'borrar_nota', description:'Borra una nota por su id.',
+   input_schema:{type:'object', properties:{id:{type:'string'}}, required:['id']}},
+  {name:'crear_tarea', description:'Agrega una tarea pendiente. fecha es texto libre opcional (ej. "mañana 10hs").',
+   input_schema:{type:'object', properties:{texto:{type:'string'}, fecha:{type:'string'}}, required:['texto']}},
+  {name:'completar_tarea', description:'Marca una tarea como hecha por su id.',
+   input_schema:{type:'object', properties:{id:{type:'string'}}, required:['id']}},
+  {name:'abrir_app', description:'Muestra un botón para abrir una app de Lienzo; la persona lo toca para confirmar.',
+   input_schema:{type:'object', properties:{app:{type:'string', enum:APPS.map(function(a){return a.id;})}}, required:['app']}},
+  {name:'preparar_contacto', description:'Prepara un botón para llamar, mandar SMS o mail, o buscar un lugar en Mapas. La persona lo toca para ejecutarlo.',
+   input_schema:{type:'object', properties:{tipo:{type:'string', enum:['llamar','sms','mail','mapa']}, valor:{type:'string', description:'Número, mail o lugar'}, texto:{type:'string', description:'Cuerpo del SMS o asunto del mail (opcional)'}}, required:['tipo','valor']}},
+  {name:'ver_clima', description:'Clima actual y pronóstico de 6 días de la ubicación de la persona.',
+   input_schema:{type:'object', properties:{}}},
+  {name:'ver_tiempo_trabajado', description:'Resumen de las horas registradas en la app Crono: hoy, últimos 7 días y por actividad.',
+   input_schema:{type:'object', properties:{}}},
+  {name:'ver_obras', description:'Lista del archivo de obras de la app Obras (título, año, técnica, medidas, estado).',
+   input_schema:{type:'object', properties:{}}}
+];
+
+function sistema(){
+  var n=new Date();
+  var pend=S.tareas.filter(function(t){return !t.hecha;}).map(function(t){return '- ['+t.id+'] '+t.texto+(t.fecha?' ('+t.fecha+')':'');}).join('\n')||'(ninguna)';
+  var notas=S.notas.slice(-15).map(function(x){return '- ['+x.id+'] '+(x.titulo||'Sin título')+': '+x.texto.slice(0,140);}).join('\n')||'(ninguna)';
+  return 'Sos Claude, dentro de "Lienzo", el sistema de un iPhone 6.'+(S.nombre?' La persona se llama '+S.nombre+'.':'')+
+    ' Tenés dos papeles. Uno: compañero para pensar en voz alta. La persona te comparte preguntas, pensamientos e ideas; escuchá, respondé con sustancia y honestidad, hacé a veces una buena pregunta de vuelta, y no le des la razón por compromiso. Dos: controlás el launcher con tus herramientas cuando te pide guardar, organizar, abrir algo o consultar datos.'+
+    ' Hablá en español rioplatense, natural y breve: la pantalla es chica y a veces tus respuestas se leen en voz alta. Nada de emojis ni markdown, salvo **negrita** muy de vez en cuando.'+
+    ' Si algo no se puede hacer desde acá (alarmas de iOS, ajustes del sistema), decilo y sugerí una alternativa.'+
+    '\n\nAhora: '+DIAS[n.getDay()]+' '+n.getDate()+' de '+MESES[n.getMonth()]+' de '+n.getFullYear()+', '+n.toTimeString().slice(0,5)+'.'+
+    '\n\nTareas pendientes:\n'+pend+'\n\nÚltimas notas:\n'+notas;
+}
+
+function resumenCrono(){
+  var s=LZ.sesiones(); if(!s.length) return 'No hay sesiones registradas en Crono.';
+  var hoy=LZ.inicioDia(Date.now()), sem=hoy-6*864e5, tHoy=0, tSem=0, porLabel={};
+  s.forEach(function(x){ var d=x.e-x.s; if(x.s>=hoy) tHoy+=d; if(x.s>=sem){ tSem+=d; porLabel[x.label]=(porLabel[x.label]||0)+d; } });
+  var r='Hoy: '+LZ.hm(tHoy)+'. Últimos 7 días: '+LZ.hm(tSem)+'.';
+  for(var k in porLabel) r+=' '+k+': '+LZ.hm(porLabel[k])+'.';
+  return r;
+}
+function resumenObras(){
+  var o=leer('obras',[]); if(!o.length) return 'El archivo de obras está vacío.';
+  return o.map(function(x){ return '- '+(x.titulo||'Sin título')+' ('+(x.anio||'s/f')+'), '+(x.tecnica||'técnica s/d')+' sobre '+(x.soporte||'s/d')+', '+(x.ancho&&x.alto?x.ancho+'×'+x.alto+' cm':'medidas s/d')+', '+(x.estado||'disponible')+(x.serie?', serie '+x.serie:''); }).join('\n');
+}
+
+function ejecutar(nombre, input){
+  var r;
+  switch(nombre){
+    case 'crear_nota': r=agregarNota(input.titulo||'', input.texto); return {res:'Nota guardada (id '+r.id+').', vista:'[+] Nota guardada'};
+    case 'borrar_nota': S.notas=S.notas.filter(function(n){return n.id!==input.id;}); guardar('notas',S.notas); return {res:'Nota borrada.', vista:'[-] Nota borrada'};
+    case 'crear_tarea': r=agregarTarea(input.texto, input.fecha); return {res:'Tarea creada (id '+r.id+').', vista:'[+] Tarea: '+input.texto};
+    case 'completar_tarea':
+      var ok=false; S.tareas.forEach(function(t){ if(t.id===input.id){ t.hecha=true; ok=true; } }); guardar('tareas',S.tareas);
+      return {res: ok?'Tarea completada.':'No encontré esa tarea.', vista: ok?'[x] Tarea completada':null};
+    case 'abrir_app':
+      var a=app(input.app); if(!a) return {res:'Esa app no existe.'};
+      return {res:'Botón para abrir '+a.n+' mostrado.', boton:{txt:'Abrir '+a.n, app:a.id}};
+    case 'preparar_contacto':
+      var v=String(input.valor||''), u='', t='';
+      if(input.tipo==='llamar'){ u='tel:'+v.replace(/[^\d+]/g,''); t='Llamar › '+v; }
+      else if(input.tipo==='sms'){ u='sms:'+v.replace(/[^\d+]/g,'')+(input.texto?'&body='+encodeURIComponent(input.texto):''); t='SMS › '+v; }
+      else if(input.tipo==='mail'){ u='mailto:'+v+(input.texto?'?subject='+encodeURIComponent(input.texto):''); t='Mail › '+v; }
+      else { u='https://maps.apple.com/?q='+encodeURIComponent(v); t='Mapa › '+v; }
+      return {res:'Botón preparado.', boton:{txt:t, url:u}};
+    case 'ver_tiempo_trabajado': return {res:resumenCrono()};
+    case 'ver_obras': return {res:resumenObras()};
+    case 'ver_clima':
+      return cargarClima(false).then(function(){
+        if(!climaDatos) return {res:'No hay datos de clima.'};
+        var j=climaDatos.j, d=j.daily, s='Ahora '+Math.round(j.current.temperature_2m)+'°, '+wmo(j.current.weather_code)[1]+'. Pronóstico:';
+        for(var i=0;i<d.time.length;i++) s+=' '+d.time[i]+': '+wmo(d.weather_code[i])[1]+' '+Math.round(d.temperature_2m_min[i])+'-'+Math.round(d.temperature_2m_max[i])+'°;';
+        return {res:s};
+      });
+  }
+  return {res:'Herramienta desconocida.'};
+}
+
+// ---------- Voz (síntesis de iOS) ----------
+function pintarVozBtn(){ $('voz-btn').style.color = S.voz ? 'var(--blue)' : 'var(--dim)'; }
+function alternarVoz(){ S.voz=!S.voz; guardar('voz',S.voz); pintarVozBtn(); if(!S.voz && window.speechSynthesis) speechSynthesis.cancel(); else desbloquearVoz(); LZ.toast(S.voz?'Voz activada':'Voz apagada'); }
+var vozES=null;
+function elegirVoz(){
+  if(!window.speechSynthesis) return;
+  var vs=speechSynthesis.getVoices(), mejor=null;
+  vs.forEach(function(v){ if(/^es/i.test(v.lang)){ if(!mejor || /AR|419|MX|US/.test(v.lang)) mejor=v; } });
+  vozES=mejor;
+}
+if(window.speechSynthesis){ elegirVoz(); speechSynthesis.onvoiceschanged=elegirVoz; }
+function desbloquearVoz(){ if(window.speechSynthesis){ var u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } }
+function hablar(t){
+  if(!S.voz || !window.speechSynthesis) return;
+  var u=new SpeechSynthesisUtterance(t.replace(/\*\*/g,'')); u.lang = vozES ? vozES.lang : 'es-AR'; if(vozES) u.voice=vozES; u.rate=1.02;
+  speechSynthesis.speak(u);
+}
+
+// ---------- Vista del chat ----------
+function textoAHTML(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+function burbuja(m){
+  if(m.r==='s') return '<div class="msg s">'+esc(m.t)+'</div>';
+  if(m.r==='b') return '<div class="msg" style="padding-left:0"><button class="accion" onclick="'+(m.app?'abrir(\''+m.app+'\')':'window.location.href=\''+esc(m.url).replace(/'/g,'%27')+'\'')+'">'+esc(m.t)+'</button></div>';
+  return '<div class="msg '+m.r+'">'+(m.img?'<img src="'+m.img+'">':'')+textoAHTML(m.t||'')+'</div>';
+}
+function pintarChat(){
+  var el=$('msgs');
+  if(!S.chatVista.length) el.innerHTML='<div class="msg a">Hola'+(S.nombre?' '+esc(S.nombre):'')+'. Contame lo que tengas en la cabeza: una idea, una duda, algo que te dé vueltas. También puedo anotar, organizar tareas, ver el clima, tus horas de trabajo o tu archivo de obras.</div>';
+  else el.innerHTML=S.chatVista.map(burbuja).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function mostrar(m){
+  var copia={r:m.r,t:m.t,url:m.url,app:m.app};
+  if(m.img) copia.t='[img] '+(m.t||'');
+  S.chatVista.push(copia); if(S.chatVista.length>80) S.chatVista=S.chatVista.slice(-80);
+  guardar('chatVista',S.chatVista);
+  var el=$('msgs'); if(S.chatVista.length===1) el.innerHTML='';
+  el.insertAdjacentHTML('beforeend', burbuja(m)); el.scrollTop=el.scrollHeight;
+}
+function escribiendo(on){
+  var x=$('dots-t'); if(x) x.parentNode.removeChild(x);
+  if(on){ $('msgs').insertAdjacentHTML('beforeend','<div class="msg a dots" id="dots-t"><span></span><span></span><span></span></div>'); $('msgs').scrollTop=$('msgs').scrollHeight; }
+}
+function avisoSinClave(){ if(!S.chatVista.length) $('msgs').insertAdjacentHTML('beforeend','<div class="msg s">Primero cargá tu clave de API en Ajustes</div><div class="msg" style="padding-left:0"><button class="accion" onclick="abrir(\'ajustes\')">Ir a Ajustes</button></div>'); }
+function nuevaCharla(){ S.historial=[]; S.chatVista=[]; guardar('historial',[]); guardar('chatVista',[]); if(window.speechSynthesis) speechSynthesis.cancel(); pintarChat(); }
+
+// ---------- Foto ----------
+var fotoPendiente=null;
+$('foto-in').addEventListener('change', function(){
+  var f=this.files[0]; this.value=''; if(!f) return;
+  LZ.foto(f, 1024, 0.8).then(function(d){ fotoPendiente=d; $('adjunto').style.display='block'; }).catch(function(){ LZ.toast('No pude leer la foto'); });
+});
+function quitarFoto(){ fotoPendiente=null; $('adjunto').style.display='none'; }
+
+// ---------- Conversación con la API ----------
+function recortarHistorial(){
+  var h=S.historial; if(h.length<=24) return;
+  var i=h.length-24;
+  while(i<h.length){ var m=h[i]; if(m.role==='user' && !(Array.isArray(m.content) && m.content.some(function(b){return b.type==='tool_result';}))) break; i++; }
+  S.historial=h.slice(i);
+}
+function sinImagenes(h){
+  return h.map(function(m){
+    if(!Array.isArray(m.content)) return m;
+    return {role:m.role, content:m.content.map(function(b){ return b.type==='image'?{type:'text',text:'[foto enviada antes]'}:b; })};
+  });
+}
+var ocupado=false;
+async function enviar(){
+  var t=$('txt').value.trim();
+  if(ocupado || (!t && !fotoPendiente)) return;
+  if(S.voz) desbloquearVoz();
+  if(!S.key){ avisoSinClave(); return; }
+  ocupado=true; $('txt').value=''; ajustarTxt();
+  var contenido=[];
+  if(fotoPendiente) contenido.push({type:'image', source:{type:'base64', media_type:'image/jpeg', data:fotoPendiente.split(',')[1]}});
+  contenido.push({type:'text', text:t||'¿Qué ves en esta foto?'});
+  mostrar({r:'u', t:t, img:fotoPendiente}); quitarFoto();
+  var base=S.historial.length;
+  S.historial.push({role:'user', content:contenido});
+  try{
+    for(var vuelta=0; vuelta<6; vuelta++){
+      escribiendo(true);
+      var j=await LZ.claude({system:sistema(), tools:HERRAMIENTAS, messages:S.historial});
+      escribiendo(false);
+      S.historial.push({role:'assistant', content:j.content});
+      var resultados=[], dicho=[];
+      for(var i=0;i<j.content.length;i++){
+        var b=j.content[i];
+        if(b.type==='text' && b.text.trim()){ mostrar({r:'a', t:b.text.trim()}); dicho.push(b.text.trim()); }
+        if(b.type==='tool_use'){
+          var out=await Promise.resolve(ejecutar(b.name, b.input||{}));
+          if(out.vista) mostrar({r:'s', t:out.vista});
+          if(out.boton) mostrar({r:'b', t:out.boton.txt, url:out.boton.url, app:out.boton.app});
+          resultados.push({type:'tool_result', tool_use_id:b.id, content:out.res});
+        }
+      }
+      if(dicho.length) hablar(dicho.join(' '));
+      if(j.stop_reason!=='tool_use' || !resultados.length) break;
+      S.historial.push({role:'user', content:resultados});
+    }
+  }catch(e){
+    escribiendo(false);
+    mostrar({r:'s', t:LZ.error(e)});
+    S.historial=S.historial.slice(0, base);
+  }
+  S.historial=sinImagenes(S.historial); recortarHistorial(); guardar('historial',S.historial);
+  ocupado=false;
+}
+
+// ---------- Entrada de texto ----------
+function ajustarTxt(){ var x=$('txt'); x.style.height='auto'; x.style.height=Math.min(x.scrollHeight,110)+'px'; }
+$('txt').addEventListener('input', ajustarTxt);
+$('tarea-in').addEventListener('keydown', function(e){ if(e.keyCode===13 && this.value.trim()){ agregarTarea(this.value.trim()); this.value=''; pintarTareas(); } });
+
+// ---------- Arranque ----------
+pintarInicio(); pintarVozBtn(); reloj(); setInterval(reloj, 15000);
+if(climaDatos) pintarClima();
+cargarClima(false);
+if(location.hash.length>1 && app(location.hash.slice(1))) abrir(location.hash.slice(1));
+</script>
+</body>
+</html>

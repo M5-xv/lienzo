@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Ojos · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+#cv{position:absolute;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
+#stage{flex:1;position:relative;overflow:hidden;background:#000}
+#hud{flex-shrink:0;border-top:3px solid var(--o);padding:10px 14px calc(env(safe-area-inset-bottom) + 12px);background:var(--bg)}
+.hud-r{display:flex;align-items:center;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mute)}
+.hud-r b{color:var(--o);font-weight:700;width:90px}
+.bar{flex:1;height:10px;background:var(--line);margin-left:8px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--o)}
+#estado{font-family:var(--disp);font-weight:900;font-size:22px;color:var(--ink);text-transform:uppercase;margin-top:8px}
+#cam{position:absolute;right:12px;top:12px;z-index:3}
+video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" href="index.html">‹ Inicio</a><h1 id="nombre">Ojos</h1><button class="act" id="ren">Nombre</button></div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <button class="btn b sm" id="cam">Cámara</button>
+    <video id="vid" playsinline muted autoplay></video>
+  </div>
+  <div id="hud">
+    <div class="hud-r"><b>Ánimo</b><div class="bar"><i id="b-an"></i></div></div>
+    <div class="hud-r" style="margin-top:6px"><b>Energía</b><div class="bar"><i id="b-en" style="background:var(--blue)"></i></div></div>
+    <div id="estado">Mirándote</div>
+    <div class="hint" id="tip">Tocá para saludar · dejá el dedo apoyado para mimarlo · tocalo muchas veces y se enoja</div>
+  </div>
+</div>
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$;
+var cv=$('cv'), x=cv.getContext('2d'), W=0, H=0, dpr=1;
+var M=LZ.get('ojos',{nombre:'Ojos', animo:70, energia:80, t:Date.now()});
+// lo que pasó mientras no estabas: baja un poco el ánimo, se recupera la energía
+(function(){ var h=(Date.now()-M.t)/36e5; M.animo=Math.max(10, M.animo-h*3); M.energia=Math.min(100, M.energia+h*12); })();
+$('nombre').textContent=M.nombre;
+$('ren').addEventListener('click', function(){ var n=prompt('¿Cómo se llama?', M.nombre); if(n && n.trim()){ M.nombre=n.trim().slice(0,12); $('nombre').textContent=M.nombre; guardar(); } });
+function guardar(){ M.t=Date.now(); LZ.set('ojos',M); }
+
+function tam(){ dpr=Math.min(2, window.devicePixelRatio||1); W=cv.clientWidth; H=cv.clientHeight; cv.width=W*dpr; cv.height=H*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
+window.addEventListener('resize', tam); tam();
+
+// ---------- Estado ----------
+var mirar={x:0, y:0}, objetivo={x:0, y:0}, abierto=1, parpadeo=0, prox=Date.now()+2500;
+var expr='normal', exprHasta=0, ultimoToque=Date.now(), toques=[], tocando=null, mimoT=null, zz=0;
+var NOMBRES={normal:'Mirándote', feliz:'Contento', amor:'Le encanta', sorpresa:'¡Sorpresa!', enojado:'Enojado', triste:'Bajoneado', dormido:'Durmiendo', curioso:'Curioso'};
+function poner(e, ms){ expr=e; exprHasta=Date.now()+ms; }
+function base(){
+  var h=new Date().getHours(), quieto=Date.now()-ultimoToque;
+  if(M.energia<12 || ((h>=0 && h<7) && quieto>30000) || quieto>180000) return 'dormido';
+  if(M.animo<25) return 'triste';
+  return 'normal';
+}
+
+// ---------- Toques ----------
+function pos(e){ var t=e.touches ? e.touches[0] : e, r=cv.getBoundingClientRect(); return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+function apuntar(p){ objetivo.x=Math.max(-1,Math.min(1,(p.x-W/2)/(W/2))); objetivo.y=Math.max(-1,Math.min(1,(p.y-H/2)/(H/2))); }
+function inicio(e){
+  e.preventDefault(); var p=pos(e); tocando=p; apuntar(p);
+  var antes=expr; ultimoToque=Date.now();
+  if(antes==='dormido' || base()==='dormido'){ poner('sorpresa', 1400); M.energia=Math.max(M.energia, 25); return; }
+  toques.push(Date.now()); toques=toques.filter(function(t){ return Date.now()-t<2500; });
+  if(toques.length>=7){ poner('enojado', 3000); M.animo=Math.max(0, M.animo-6); toques=[]; guardar(); return; }
+  clearTimeout(mimoT);
+  mimoT=setTimeout(function(){ if(tocando){ poner('amor', 99999); } }, 650);
+}
+function mover(e){ if(!tocando) return; e.preventDefault(); tocando=pos(e); apuntar(tocando); }
+function fin(e){
+  if(!tocando) return; clearTimeout(mimoT);
+  if(expr==='amor'){ M.animo=Math.min(100, M.animo+12); poner('feliz', 1500); }
+  else if(expr!=='enojado' && expr!=='sorpresa'){ M.animo=Math.min(100, M.animo+4); poner(Math.random()<0.25?'curioso':'feliz', 1100); }
+  tocando=null; guardar();
+}
+cv.addEventListener('touchstart', inicio); cv.addEventListener('touchmove', mover); cv.addEventListener('touchend', fin); cv.addEventListener('touchcancel', fin);
+cv.addEventListener('mousedown', inicio); cv.addEventListener('mousemove', mover); window.addEventListener('mouseup', fin);
+
+// ---------- Cámara: siguen el movimiento ----------
+var vid=$('vid'), camOn=false, pc=document.createElement('canvas'), px=pc.getContext('2d'), prev=null, movX=null, movY=null;
+pc.width=32; pc.height=24;
+$('cam').addEventListener('click', function(){
+  if(camOn){ parar(); return; }
+  if(LZ.standalone || !LZ.media){
+    if(confirm('En iOS 12 la cámara solo funciona si abrís Ojos en Safari. ¿Abrirlo ahí?')) LZ.enSafari();
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:160}, height:{ideal:120}}, audio:false}).then(function(s){
+    vid.setAttribute('playsinline',''); vid.srcObject=s; var pr=vid.play(); if(pr && pr.catch) pr.catch(function(){});
+    camOn=true; $('cam').textContent='Cámara ON'; LZ.toast('Movete frente al teléfono');
+  }).catch(function(){ LZ.toast('Sin permiso de cámara'); });
+});
+function parar(){ if(vid.srcObject) vid.srcObject.getTracks().forEach(function(t){ t.stop(); }); vid.srcObject=null; camOn=false; prev=null; movX=null; $('cam').textContent='Cámara'; }
+setInterval(function(){
+  if(!camOn || vid.readyState<2) return;
+  px.drawImage(vid, 0, 0, 32, 24);
+  var d=px.getImageData(0,0,32,24).data, g=new Uint8Array(768), sx=0, sy=0, n=0;
+  for(var i=0;i<768;i++) g[i]=(d[i*4]*3+d[i*4+1]*6+d[i*4+2])/10;
+  if(prev){ for(i=0;i<768;i++){ if(Math.abs(g[i]-prev[i])>22){ sx+=i%32; sy+=Math.floor(i/32); n++; } } }
+  prev=g;
+  if(n>10){
+    movX = 1-(sx/n)/31*2;  // espejo: la cámara frontal ve al revés
+    movY = (sy/n)/23*2-1;
+    ultimoToque = Math.max(ultimoToque, Date.now()-25000); // el movimiento lo mantiene despierto
+    if(expr==='dormido' && n>120){ poner('sorpresa', 1200); }
+  }
+}, 110);
+
+// ---------- Dibujo ----------
+function ojo(cx, cy, r, lado, e, t){
+  // e: expresión, lado: -1 izquierda / 1 derecha
+  var ox=mirar.x*r*0.42, oy=mirar.y*r*0.36;
+  if(e==='feliz'){
+    x.strokeStyle='#ff6a00'; x.lineWidth=r*0.24; x.lineCap='butt';
+    x.beginPath(); x.arc(cx, cy+r*0.35, r*0.75, Math.PI*1.15, Math.PI*1.85); x.stroke();
+    return;
+  }
+  var ap = e==='dormido' ? 0.06 : e==='sorpresa' ? 1.12 : abierto;
+  // contorno neón azul
+  x.save();
+  x.shadowColor='rgba(46,197,255,.9)'; x.shadowBlur=r*0.25;
+  x.strokeStyle='#2ec5ff'; x.lineWidth=r*0.07;
+  x.fillStyle='#f3eee6';
+  x.beginPath(); x.ellipse ? x.ellipse(cx, cy, r, r*Math.max(0.06, ap), 0, 0, Math.PI*2) : x.arc(cx, cy, r, 0, Math.PI*2);
+  x.fill(); x.stroke();
+  x.restore();
+  if(e==='dormido') return;
+  // pupila / iris
+  x.save(); x.beginPath(); x.ellipse ? x.ellipse(cx, cy, r*0.97, r*Math.max(0.05, ap)*0.97, 0, 0, Math.PI*2) : x.arc(cx,cy,r*0.97,0,Math.PI*2); x.clip();
+  var ir = e==='sorpresa' ? r*0.34 : e==='amor' ? r*0.48 : r*0.46;
+  var px2=cx+ox, py2=cy+oy;
+  if(e==='amor'){ corazon(px2, py2, ir*1.1, '#ff6a00'); }
+  else {
+    x.fillStyle='#ff6a00'; x.beginPath(); x.arc(px2, py2, ir, 0, Math.PI*2); x.fill();
+    x.fillStyle='#0a0a0a'; x.beginPath(); x.arc(px2, py2, ir*(e==='sorpresa'?0.38:0.55), 0, Math.PI*2); x.fill();
+    x.fillStyle='rgba(255,255,255,.9)'; x.beginPath(); x.arc(px2-ir*0.32, py2-ir*0.36, ir*0.18, 0, Math.PI*2); x.fill();
+  }
+  // párpados de expresión
+  x.fillStyle='#000';
+  if(e==='enojado'){ x.beginPath(); x.moveTo(cx-r*1.2, cy-r*(lado<0?1.3:0.15)); x.lineTo(cx+r*1.2, cy-r*(lado<0?0.15:1.3)); x.lineTo(cx+r*1.2, cy-r*1.5); x.lineTo(cx-r*1.2, cy-r*1.5); x.closePath(); x.fill(); }
+  if(e==='triste'){ x.beginPath(); x.moveTo(cx-r*1.2, cy-r*(lado<0?0.25:1.2)); x.lineTo(cx+r*1.2, cy-r*(lado<0?1.2:0.25)); x.lineTo(cx+r*1.2, cy-r*1.5); x.lineTo(cx-r*1.2, cy-r*1.5); x.closePath(); x.fill(); }
+  if(e==='curioso' && lado>0){ x.fillRect(cx-r*1.2, cy-r*1.5, r*2.4, r*0.95); }
+  x.restore();
+}
+function corazon(cx, cy, s, c){
+  x.fillStyle=c; x.beginPath();
+  x.moveTo(cx, cy+s*0.75);
+  x.bezierCurveTo(cx-s*1.2, cy-s*0.05, cx-s*0.6, cy-s*0.95, cx, cy-s*0.35);
+  x.bezierCurveTo(cx+s*0.6, cy-s*0.95, cx+s*1.2, cy-s*0.05, cx, cy+s*0.75);
+  x.fill();
+}
+var t0=Date.now(), cuadro=19;
+function loop(){
+  var ahora=Date.now(), t=(ahora-t0)/1000;
+  if(expr!=='normal' && ahora>exprHasta && !(expr==='amor' && tocando)) expr='normal';
+  var e = expr==='normal' ? base() : expr;
+  // a dónde mira: dedo > movimiento de cámara > vistazos al azar
+  if(!tocando){
+    if(camOn && movX!==null){ objetivo.x=movX; objetivo.y=movY; }
+    else if(ahora>prox){ objetivo.x=(Math.random()*2-1)*0.8; objetivo.y=(Math.random()*2-1)*0.5; prox=ahora+1500+Math.random()*3000; if(Math.random()<0.3){ objetivo.x=0; objetivo.y=0; } }
+  }
+  var vel = tocando ? 0.35 : 0.12;
+  mirar.x+=(objetivo.x-mirar.x)*vel; mirar.y+=(objetivo.y-mirar.y)*vel;
+  // parpadeo
+  if(e==='normal' || e==='triste' || e==='curioso'){
+    if(parpadeo===0 && ahora>prox-700 && Math.random()<0.02) parpadeo=1;
+    if(parpadeo){ abierto-=0.28; if(abierto<=0.05){ abierto=0.05; parpadeo=0; } } else abierto=Math.min(1, abierto+0.2);
+  } else abierto=Math.min(1, abierto+0.2);
+  // energía y ánimo con el tiempo
+  if(e==='dormido') M.energia=Math.min(100, M.energia+0.01); else M.energia=Math.max(0, M.energia-0.0015);
+  M.animo=Math.max(0, M.animo-0.0008);
+
+  x.clearRect(0,0,W,H);
+  // piso de grilla naranja
+  x.strokeStyle='rgba(255,106,0,.12)'; x.lineWidth=1;
+  for(var gy=0; gy<H; gy+=28){ x.beginPath(); x.moveTo(0,gy+0.5); x.lineTo(W,gy+0.5); x.stroke(); }
+  for(var gx=0; gx<W; gx+=28){ x.beginPath(); x.moveTo(gx+0.5,0); x.lineTo(gx+0.5,H); x.stroke(); }
+  var r=Math.min(W*0.2, H*0.26), flo=Math.sin(t*1.6)*(e==='dormido'?2:5);
+  var cy=H*0.46+flo, sep=r*1.25;
+  ojo(W/2-sep, cy, r, -1, e, t); ojo(W/2+sep, cy, r, 1, e, t);
+  if(e==='dormido'){ zz+=0.016; x.fillStyle='#2ec5ff'; x.font='900 '+Math.round(r*0.45)+'px '+getComputedStyle(document.body).getPropertyValue('--disp');
+    for(var k=0;k<3;k++){ var f=(zz+k/3)%1; x.globalAlpha=1-f; x.fillText('Z', W/2+sep+r*0.6+f*r*0.6, cy-r*0.6-f*r*1.4); } x.globalAlpha=1; }
+  if(e==='amor'){ for(var h=0;h<3;h++){ var f2=((t*0.5)+h/3)%1; x.globalAlpha=1-f2; corazon(W/2+(h-1)*r*0.9, cy-r*1.2-f2*r, r*0.18, '#2ec5ff'); } x.globalAlpha=1; }
+  // boca mínima para enojado/feliz
+  x.strokeStyle='#ff6a00'; x.lineWidth=r*0.09;
+  if(e==='feliz' || e==='amor'){ x.beginPath(); x.arc(W/2, cy+r*1.05, r*0.35, Math.PI*0.15, Math.PI*0.85); x.stroke(); }
+  if(e==='enojado'){ x.beginPath(); x.moveTo(W/2-r*0.3, cy+r*1.35); x.lineTo(W/2+r*0.3, cy+r*1.3); x.stroke(); }
+  if(e==='sorpresa'){ x.beginPath(); x.arc(W/2, cy+r*1.35, r*0.16, 0, Math.PI*2); x.stroke(); }
+
+  if(++cuadro%20===0){ $('b-an').style.width=M.animo+'%'; $('b-en').style.width=M.energia+'%'; $('estado').textContent=NOMBRES[e]||''; }
+  requestAnimationFrame(loop);
+}
+setInterval(guardar, 15000);
+document.addEventListener('visibilitychange', function(){ if(document.hidden){ guardar(); if(camOn) parar(); } });
+loop();
+</script>
+</body>
+</html>

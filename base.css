@@ -1,0 +1,82 @@
+/* Lienzo · base visual compartida
+   Naranja y negro, brutalista, con neón azul.
+   Apto Safari de iOS 12: sin flex-gap, sin inset, sin aspect-ratio. */
+:root{
+  --bg:#0a0a0a; --ink:#f3eee6; --mute:rgba(243,238,230,.62); --dim:rgba(243,238,230,.34);
+  --o:#ff6a00; --o2:#ff9440; --o3:#7a3300;
+  --blue:#2ec5ff; --glow:0 0 4px rgba(46,197,255,.95),0 0 13px rgba(46,197,255,.45);
+  --panel:#121212; --panel2:#1b1b1b; --line:#2b2b2b;
+  --disp:"HelveticaNeue-CondensedBlack","Helvetica Neue Condensed Black","HelveticaNeue-CondensedBold","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --mono:Menlo,"SF Mono","Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);
+  -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+body{overflow:hidden;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;border-radius:0;cursor:pointer;-webkit-appearance:none}
+input,textarea,select{font:inherit;color:var(--ink);border-radius:0;-webkit-appearance:none;appearance:none;-webkit-user-select:text;user-select:text}
+a{color:inherit;text-decoration:none}
+.sel-ok{-webkit-user-select:text;user-select:text}
+
+.disp{font-family:var(--disp);font-weight:900;text-transform:uppercase;letter-spacing:-.5px;line-height:.9}
+
+/* ---------- Estructura de app ---------- */
+.shell{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:var(--bg)}
+.top{display:flex;align-items:flex-end;padding:calc(env(safe-area-inset-top) + 24px) 14px 10px;border-bottom:3px solid var(--o);background:var(--bg);flex-shrink:0}
+.top .back,.top .act{width:84px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 0}
+.top .back{color:var(--o);text-align:left}
+.top .act{color:var(--blue);text-align:right}
+.top h1{flex:1;font-family:var(--disp);font-weight:900;font-size:24px;line-height:1;text-transform:uppercase;color:var(--o);text-align:center;letter-spacing:-.5px;white-space:nowrap;overflow:hidden}
+.wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(env(safe-area-inset-bottom) + 24px)}
+.stripes{height:8px;background:repeating-linear-gradient(-45deg,#000 0,#000 7px,var(--o) 7px,var(--o) 14px)}
+
+/* ---------- Bloques ---------- */
+.blk{border:2px solid var(--line);background:var(--panel);padding:12px;margin-bottom:12px;position:relative}
+.blk.o{border-color:var(--o)}
+.blk.b{border-color:var(--blue);box-shadow:var(--glow)}
+.tagl{display:inline-block;background:var(--o);color:#000;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 7px;margin-bottom:10px}
+.tagl.b{background:none;color:var(--blue);border:1px solid var(--blue);box-shadow:var(--glow)}
+label.l{display:block;font-size:10px;letter-spacing:2px;color:var(--mute);text-transform:uppercase;margin:0 0 5px}
+.hint{font-size:11px;color:var(--dim);line-height:1.5;margin-top:6px}
+.empty{color:var(--dim);text-align:center;margin:40px 10px;font-size:11px;letter-spacing:2px;text-transform:uppercase;line-height:1.8}
+
+/* ---------- Controles ---------- */
+.btn{display:block;width:100%;padding:13px 10px;background:var(--o);color:#000;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;text-align:center}
+.btn:active{background:var(--o2)}
+.btn.g{background:none;border:2px solid var(--o);color:var(--o);padding:11px 10px}
+.btn.b{background:none;border:2px solid var(--blue);color:var(--blue);box-shadow:var(--glow);padding:11px 10px}
+.btn.r{background:none;border:2px solid #ff3355;color:#ff3355;padding:11px 10px}
+.btn.sm{display:inline-block;width:auto;padding:8px 12px;font-size:10px}
+.row{display:flex;margin:0 -4px}
+.row>*{margin:0 4px;flex:1;min-width:0}
+.mt{margin-top:10px}
+.field{display:block;width:100%;padding:10px 11px;background:#000;border:2px solid var(--line);font-size:16px;outline:0;margin-bottom:10px}
+.field:focus{border-color:var(--o)}
+textarea.field{min-height:96px;resize:vertical;line-height:1.4}
+select.field{background:#000 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0h12L6 8z' fill='%23ff6a00'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:30px}
+.seg{display:flex;flex-wrap:wrap;margin:0 -3px 8px}
+.seg button{flex:1;min-width:0;margin:3px;padding:9px 4px;border:2px solid var(--line);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.seg.wrapit button{flex:none;padding:8px 10px}
+.seg button.on{background:var(--o);border-color:var(--o);color:#000;font-weight:700}
+.tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:2px solid var(--line);flex-shrink:0;background:var(--bg)}
+.tabs button{flex:1 0 auto;padding:12px 12px 10px;font-size:11px;letter-spacing:1.5px;color:var(--mute);text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs button.on{color:var(--o);border-bottom-color:var(--o)}
+input[type=range]{display:block;width:100%;height:30px;background:none;margin:2px 0 8px;-webkit-appearance:none}
+input[type=range]:focus{outline:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;background:var(--o);border:0}
+
+/* ---------- Resultados ---------- */
+.out{font-family:var(--disp);font-weight:900;font-size:44px;color:var(--o);line-height:1;letter-spacing:-1px}
+.out.b{color:var(--blue);text-shadow:0 0 10px rgba(46,197,255,.5)}
+.unit{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:1.5px;font-weight:400;text-transform:uppercase}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.kv:last-child{border-bottom:0}
+.kv b{color:var(--o);font-weight:700}
+
+/* ---------- Capa modal ---------- */
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;background:var(--bg);display:none;flex-direction:column}
+.modal.on{display:flex}
+.modal .wrap{padding-top:calc(env(safe-area-inset-top) + 24px)}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 24px);z-index:60;background:var(--o);color:#000;font-size:12px;font-weight:700;letter-spacing:1px;padding:12px 14px;text-transform:uppercase;display:none}
+.toast.on{display:block}

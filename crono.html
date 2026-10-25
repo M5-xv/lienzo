@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Crono · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+#reloj{padding:22px 16px 18px;text-align:center}
+#t{font-family:var(--disp);font-weight:900;font-size:92px;line-height:.9;letter-spacing:-3px;color:var(--ink)}
+#t.run{color:var(--o)}
+#t small{font-size:44px;color:var(--dim);letter-spacing:-1px}
+#estado{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-top:10px}
+#estado.run{color:var(--blue);text-shadow:0 0 8px rgba(46,197,255,.6)}
+#go{height:76px;font-family:var(--disp);font-weight:900;font-size:34px;letter-spacing:3px}
+#go.run{background:none;border:3px solid var(--blue);color:var(--blue);box-shadow:var(--glow)}
+.meta{height:8px;background:var(--line);margin:10px 0 4px;position:relative}
+.meta i{position:absolute;left:0;top:0;bottom:0;background:var(--o)}
+.bars{display:flex;align-items:flex-end;height:110px;margin:6px -3px 0}
+.bars div{flex:1;margin:0 3px;text-align:center;font-size:9px;color:var(--dim);letter-spacing:1px;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.bars div i{display:block;background:var(--o3);margin-bottom:5px;min-height:2px}
+.bars div.hoy i{background:var(--o)}
+.bars div.hoy{color:var(--o)}
+.lab{display:flex;align-items:center;padding:7px 0;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.lab span{width:90px;overflow:hidden;white-space:nowrap}
+.lab i{flex:1;height:10px;background:var(--line);margin:0 10px;position:relative}
+.lab i b{position:absolute;left:0;top:0;bottom:0;background:var(--blue);box-shadow:var(--glow)}
+.lab em{font-style:normal;color:var(--o);width:64px;text-align:right}
+.ses{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
+.ses .x{color:#ff3355;font-size:10px;letter-spacing:1px;margin-left:10px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" href="index.html">‹ Inicio</a><h1>Crono</h1><button class="act" id="meta-btn">Meta</button></div>
+  <div class="wrap" style="padding-top:0">
+    <div id="reloj">
+      <div id="t">00:00<small>:00</small></div>
+      <div id="estado">En pausa</div>
+    </div>
+    <label class="l">¿En qué estás?</label>
+    <div class="seg wrapit" id="labels"></div>
+    <button class="btn" id="go">Iniciar</button>
+
+    <div class="blk mt">
+      <div class="row" style="align-items:flex-end">
+        <div><div class="unit">Hoy</div><div class="out" id="hoy">0m</div></div>
+        <div style="text-align:right"><div class="unit">Últimos 7 días</div><div class="out b" id="sem">0m</div></div>
+      </div>
+      <div class="meta"><i id="meta-bar" style="width:0"></i></div>
+      <div class="hint" id="meta-txt"></div>
+    </div>
+    <div class="blk">
+      <div class="tagl">Semana</div>
+      <div class="bars" id="bars"></div>
+    </div>
+    <div class="blk">
+      <div class="tagl">Por actividad · 7 días</div>
+      <div id="porlab"></div>
+    </div>
+    <div class="blk">
+      <div class="tagl">Sesiones de hoy</div>
+      <div id="sesiones"></div>
+    </div>
+  </div>
+</div>
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$, pad=LZ.pad;
+var C=LZ.get('crono',{run:null, ses:[]});
+var LABELS=LZ.get('crono_labels',['Pintura','Edición','Rodaje','Estudio','Música']);
+var actual=LZ.get('crono_label','Pintura');
+var META=LZ.get('crono_meta',4); // horas por día
+var DIAS=['D','L','M','M','J','V','S'];
+
+function guardar(){ LZ.set('crono',C); }
+function pintarLabels(){
+  $('labels').innerHTML=LABELS.map(function(l){ return '<button data-v="'+LZ.esc(l)+'" class="'+(l===actual?'on':'')+'">'+LZ.esc(l)+'</button>'; }).join('')+'<button data-v="+">+</button>';
+}
+$('labels').addEventListener('click', function(e){
+  var v=e.target.getAttribute('data-v'); if(v===null) return;
+  if(v==='+'){ var n=prompt('Nueva actividad',''); if(n && n.trim()){ n=n.trim().slice(0,16); if(LABELS.indexOf(n)<0) LABELS.push(n); LZ.set('crono_labels',LABELS); actual=n; } }
+  else if(e.target.classList.contains('on') && LABELS.length>1 && !C.run){ if(confirm('¿Quitar "'+v+'" de la lista?')){ LABELS=LABELS.filter(function(x){return x!==v;}); LZ.set('crono_labels',LABELS); actual=LABELS[0]; } }
+  else actual=v;
+  LZ.set('crono_label',actual);
+  if(C.run){ // cambiar de actividad corta la sesión y empieza otra
+    C.ses.push({s:C.run.s, e:Date.now(), label:C.run.label}); C.run={s:Date.now(), label:actual}; guardar();
+  }
+  pintarLabels(); pintarResumen();
+});
+$('go').addEventListener('click', function(){
+  if(C.run){
+    var d=Date.now()-C.run.s;
+    if(d>=30000) C.ses.push({s:C.run.s, e:Date.now(), label:C.run.label});
+    C.run=null; LZ.toast(d>=30000 ? 'Sesión guardada: '+LZ.hm(d) : 'Sesión muy corta, no se guardó');
+  } else C.run={s:Date.now(), label:actual};
+  // conserva 120 días de historia
+  var lim=Date.now()-120*864e5; C.ses=C.ses.filter(function(x){ return x.e>lim; });
+  guardar(); tick(); pintarResumen();
+});
+$('meta-btn').addEventListener('click', function(){
+  var v=prompt('Meta de horas por día', META); if(v===null) return;
+  v=parseFloat(String(v).replace(',','.')); if(v>0 && v<24){ META=v; LZ.set('crono_meta',META); pintarResumen(); }
+});
+
+function tick(){
+  var d = C.run ? Date.now()-C.run.s : 0, s=Math.floor(d/1000);
+  $('t').innerHTML=pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+'<small>:'+pad(s%60)+'</small>';
+  $('t').className = C.run ? 'run' : '';
+  $('estado').className = C.run ? 'run' : '';
+  $('estado').textContent = C.run ? '● Grabando · '+C.run.label : 'En pausa';
+  $('go').textContent = C.run ? 'Detener' : 'Iniciar';
+  $('go').className = 'btn' + (C.run ? ' run' : '');
+}
+function pintarResumen(){
+  var s=LZ.sesiones(), hoy0=LZ.inicioDia(Date.now()), dias=[0,0,0,0,0,0,0], porLab={}, tHoy=0, tSem=0;
+  s.forEach(function(x){
+    var d=x.e-x.s, k=Math.floor((hoy0 - LZ.inicioDia(x.s))/864e5);
+    if(k>=0 && k<7){ dias[6-k]+=d; tSem+=d; porLab[x.label]=(porLab[x.label]||0)+d; }
+    if(k===0) tHoy+=d;
+  });
+  $('hoy').textContent=LZ.hm(tHoy); $('sem').textContent=LZ.hm(tSem);
+  var pct=Math.min(100, tHoy/(META*36e5)*100);
+  $('meta-bar').style.width=pct+'%';
+  $('meta-txt').textContent='Meta diaria: '+META+' h · '+Math.round(pct)+' %'+(pct>=100?' · cumplida':'');
+  var max=Math.max.apply(null, dias.concat([META*36e5]));
+  var h='';
+  for(var i=0;i<7;i++){ var f=new Date(hoy0-(6-i)*864e5); h+='<div class="'+(i===6?'hoy':'')+'"><i style="height:'+Math.max(2,dias[i]/max*84)+'px"></i>'+DIAS[f.getDay()]+'</div>'; }
+  $('bars').innerHTML=h;
+  var ks=Object.keys(porLab).sort(function(a,b){ return porLab[b]-porLab[a]; }), mx=ks.length?porLab[ks[0]]:1;
+  $('porlab').innerHTML = ks.length ? ks.map(function(k){ return '<div class="lab"><span>'+LZ.esc(k)+'</span><i><b style="width:'+(porLab[k]/mx*100)+'%"></b></i><em>'+LZ.hm(porLab[k])+'</em></div>'; }).join('') : '<div class="hint">Todavía no registraste tiempo esta semana.</div>';
+  var hs=C.ses.map(function(x,i){ x.i=i; return x; }).filter(function(x){ return x.s>=hoy0; }).reverse();
+  $('sesiones').innerHTML = hs.length ? hs.map(function(x){
+    var a=new Date(x.s), b=new Date(x.e);
+    return '<div class="ses"><span>'+pad(a.getHours())+':'+pad(a.getMinutes())+'–'+pad(b.getHours())+':'+pad(b.getMinutes())+' · '+LZ.esc(x.label)+'</span><span><b style="color:var(--o)">'+LZ.hm(x.e-x.s)+'</b><button class="x" onclick="borrar('+x.i+')">Borrar</button></span></div>';
+  }).join('') : '<div class="hint">Sin sesiones cerradas hoy.</div>';
+}
+function borrar(i){ if(!confirm('¿Borrar esta sesión?')) return; C.ses.splice(i,1); guardar(); pintarResumen(); }
+
+pintarLabels(); tick(); pintarResumen();
+setInterval(function(){ tick(); if(C.run && new Date().getSeconds()===0) pintarResumen(); }, 1000);
+</script>
+</body>
+</html>

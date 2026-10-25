@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Obras · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.res{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}
+.grid{display:flex;flex-wrap:wrap;margin:0 -5px}
+.ob{width:50%;padding:5px}
+.ob .im{height:150px;background:#000 center/cover no-repeat;border:2px solid var(--line);position:relative}
+.ob .im em{position:absolute;left:0;bottom:0;background:var(--o);color:#000;font-style:normal;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 6px}
+.ob .im em.v{background:#ff3355;color:#fff}
+.ob .im em.x{background:var(--blue);color:#000}
+.ob h3{font-family:var(--disp);font-weight:900;font-size:19px;line-height:1;text-transform:uppercase;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ob p{font-size:10px;color:var(--mute);letter-spacing:1px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#foto{height:260px;background:#000 center/contain no-repeat;border:2px dashed var(--o);display:flex;align-items:center;justify-content:center;color:var(--o);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+#foto.tiene{border:2px solid var(--line);color:transparent}
+#ficha-txt{white-space:pre-wrap;font-size:14px;line-height:1.5;-webkit-user-select:text;user-select:text}
+#buscar{margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="shell" id="v-lista">
+  <div class="top"><a class="back" href="index.html">‹ Inicio</a><h1>Obras</h1><button class="act" onclick="editar(null)">+ Nueva</button></div>
+  <div class="wrap">
+    <div class="res">
+      <div><div class="unit">Archivo</div><div class="out" id="cnt">0</div></div>
+      <div style="text-align:right"><div class="unit">Disponibles</div><div class="out b" id="disp">0</div></div>
+    </div>
+    <input class="field" id="buscar" placeholder="Buscar por título, técnica, serie…">
+    <div class="grid" id="grid"></div>
+    <button class="btn g mt" onclick="inventario()">Copiar inventario completo</button>
+  </div>
+</div>
+
+<div class="shell" id="v-edit" style="display:none">
+  <div class="top"><button class="back" onclick="volver()">‹ Obras</button><h1 id="e-tit">Nueva obra</h1><button class="act" onclick="guardarObra()">Guardar</button></div>
+  <div class="wrap">
+    <div id="foto" onclick="$('foto-in').click()">+ Foto de la obra</div>
+    <input type="file" id="foto-in" accept="image/*" style="display:none">
+    <button class="btn b" id="ai-btn" onclick="catalogar()">Catalogar con Claude</button>
+    <div class="hint" style="margin-bottom:14px">Claude mira la foto y completa lo que falte: título sugerido, técnica, paleta y una descripción. Lo que ya escribiste no se pisa.</div>
+
+    <label class="l">Título</label><input class="field" id="f-titulo">
+    <div class="row">
+      <div><label class="l">Año</label><input class="field" id="f-anio" type="number" inputmode="numeric"></div>
+      <div><label class="l">Serie</label><input class="field" id="f-serie"></div>
+    </div>
+    <label class="l">Técnica</label>
+    <div class="seg wrapit" id="f-tec"></div>
+    <label class="l">Soporte</label>
+    <div class="seg" id="f-sop"><button data-v="Papel">Papel</button><button data-v="Tela">Tela</button><button data-v="Madera">Madera</button><button data-v="Cartón">Cartón</button><button data-v="Otro">Otro</button></div>
+    <div class="row">
+      <div><label class="l">Ancho (cm)</label><input class="field" id="f-ancho" type="number" inputmode="decimal"></div>
+      <div><label class="l">Alto (cm)</label><input class="field" id="f-alto" type="number" inputmode="decimal"></div>
+    </div>
+    <label class="l">Estado</label>
+    <div class="seg" id="f-est"><button data-v="Disponible">Disponible</button><button data-v="Expuesta">Expuesta</button><button data-v="Reservada">Reserv.</button><button data-v="Vendida">Vendida</button></div>
+    <label class="l">Precio (opcional)</label><input class="field" id="f-precio" placeholder="Ej. USD 400">
+    <label class="l">Descripción</label><textarea class="field" id="f-desc"></textarea>
+    <label class="l">Notas privadas</label><textarea class="field" id="f-notas" style="min-height:60px" placeholder="Dónde está guardada, a quién se la mostraste…"></textarea>
+
+    <button class="btn" onclick="guardarObra()">Guardar obra</button>
+    <button class="btn b mt" onclick="ficha()">Ficha para convocatoria</button>
+    <button class="btn r mt" id="del-btn" onclick="borrarObra()">Borrar obra</button>
+  </div>
+</div>
+
+<div class="modal" id="m-ficha">
+  <div class="wrap">
+    <div class="tagl">Ficha técnica · para copiar</div>
+    <div class="blk"><div id="ficha-txt"></div></div>
+    <div class="hint" style="margin-bottom:12px">Mantené apretado el texto para seleccionarlo y copiarlo.</div>
+    <button class="btn g" onclick="$('m-ficha').classList.remove('on')">Cerrar</button>
+  </div>
+</div>
+
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$, esc=LZ.esc;
+var OBRAS=LZ.get('obras',[]), cur=null, fotoNueva=null;
+var TEC=['Tinta','Acrílico','Acuarela','Pastel','Crayón','Óleo','Grafito','Collage','Mixta'];
+$('f-tec').innerHTML=TEC.map(function(t){ return '<button data-v="'+t+'">'+t+'</button>'; }).join('');
+// técnica admite varias; soporte y estado, una sola
+$('f-tec').addEventListener('click', function(e){ if(e.target.tagName==='BUTTON') e.target.classList.toggle('on'); });
+['f-sop','f-est'].forEach(function(id){ $(id).addEventListener('click', function(e){ if(e.target.tagName!=='BUTTON') return; var on=e.target.classList.contains('on'); var b=this.children; for(var i=0;i<b.length;i++) b[i].classList.remove('on'); if(!on) e.target.classList.add('on'); }); });
+function setSeg(id, vals){ var b=$(id).children; for(var i=0;i<b.length;i++) b[i].classList.toggle('on', vals.indexOf(b[i].getAttribute('data-v'))>=0); }
+function getSeg(id){ var r=[], b=$(id).children; for(var i=0;i<b.length;i++) if(b[i].classList.contains('on')) r.push(b[i].getAttribute('data-v')); return r; }
+
+// ---------- Lista ----------
+function pintar(){
+  var q=$('buscar').value.trim().toLowerCase();
+  var vis=OBRAS.slice().reverse().filter(function(o){ return !q || [o.titulo,o.tecnica,o.serie,o.anio,o.soporte,o.estado].join(' ').toLowerCase().indexOf(q)>=0; });
+  $('cnt').textContent=OBRAS.length;
+  $('disp').textContent=OBRAS.filter(function(o){ return !o.estado || o.estado==='Disponible'; }).length;
+  if(!OBRAS.length){ $('grid').innerHTML='<div class="empty" style="width:100%">Archivo vacío.<br>Tocá "+ Nueva" y sacale una foto a tu primera obra.</div>'; return; }
+  $('grid').innerHTML=vis.map(function(o){
+    var cl=o.estado==='Vendida'?'v':o.estado==='Expuesta'?'x':'';
+    return '<div class="ob" onclick="editar(\''+o.id+'\')"><div class="im" id="th-'+o.id+'">'+(o.estado?'<em class="'+cl+'">'+esc(o.estado)+'</em>':'')+'</div><h3>'+esc(o.titulo||'Sin título')+'</h3><p>'+esc([o.anio,o.tecnica,(o.ancho&&o.alto?o.ancho+'×'+o.alto:'')].filter(Boolean).join(' · '))+'</p></div>';
+  }).join('');
+  vis.forEach(function(o){ LZ.iget('thumb_'+o.id).then(function(d){ var el=$('th-'+o.id); if(d && el) el.style.backgroundImage='url('+d+')'; }); });
+}
+$('buscar').addEventListener('input', pintar);
+
+// ---------- Edición ----------
+function editar(id){
+  cur = id ? OBRAS.filter(function(o){ return o.id===id; })[0] : null; fotoNueva=null;
+  var o = cur || {};
+  $('e-tit').textContent = cur ? (o.titulo||'Obra') : 'Nueva obra';
+  $('f-titulo').value=o.titulo||''; $('f-anio').value=o.anio||(cur?'':new Date().getFullYear()); $('f-serie').value=o.serie||'';
+  $('f-ancho').value=o.ancho||''; $('f-alto').value=o.alto||''; $('f-precio').value=o.precio||'';
+  $('f-desc').value=o.desc||''; $('f-notas').value=o.notas||'';
+  setSeg('f-tec', (o.tecnica||'').split(/,\s*/)); setSeg('f-sop',[o.soporte||'']); setSeg('f-est',[o.estado||'Disponible']);
+  $('del-btn').style.display = cur ? 'block' : 'none';
+  $('foto').style.backgroundImage=''; $('foto').className='';
+  if(cur) LZ.iget('obra_'+cur.id).then(function(d){ if(d){ $('foto').style.backgroundImage='url('+d+')'; $('foto').className='tiene'; } });
+  $('v-lista').style.display='none'; $('v-edit').style.display='flex';
+  $('v-edit').querySelector('.wrap').scrollTop=0;
+}
+function volver(){ $('v-edit').style.display='none'; $('v-lista').style.display='flex'; pintar(); }
+$('foto-in').addEventListener('change', function(){
+  var f=this.files[0]; this.value=''; if(!f) return;
+  LZ.toast('Procesando foto…');
+  LZ.foto(f, 1400, 0.85).then(function(d){ fotoNueva=d; $('foto').style.backgroundImage='url('+d+')'; $('foto').className='tiene'; })
+    .catch(function(){ LZ.toast('No pude leer la foto'); });
+});
+function leerForm(){
+  return {titulo:$('f-titulo').value.trim(), anio:$('f-anio').value.trim(), serie:$('f-serie').value.trim(),
+    tecnica:getSeg('f-tec').join(', '), soporte:getSeg('f-sop')[0]||'', estado:getSeg('f-est')[0]||'Disponible',
+    ancho:$('f-ancho').value.trim(), alto:$('f-alto').value.trim(), precio:$('f-precio').value.trim(),
+    desc:$('f-desc').value.trim(), notas:$('f-notas').value.trim()};
+}
+function miniatura(d){
+  return new Promise(function(ok){ var img=new Image(); img.onload=function(){ var k=360/Math.max(img.width,img.height), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); ok(c.toDataURL('image/jpeg',0.75)); }; img.src=d; });
+}
+function guardarObra(){
+  var f=leerForm();
+  if(!cur){ cur={id:LZ.uid(), t:Date.now()}; OBRAS.push(cur); }
+  for(var k in f) cur[k]=f[k];
+  LZ.set('obras', OBRAS);
+  var p = Promise.resolve();
+  if(fotoNueva){ var d=fotoNueva, id=cur.id; p = LZ.iset('obra_'+id, d).then(function(){ return miniatura(d); }).then(function(t){ return LZ.iset('thumb_'+id, t); }); fotoNueva=null; }
+  p.then(function(){ LZ.toast('Obra guardada'); volver(); }).catch(function(){ LZ.toast('No pude guardar la foto'); volver(); });
+}
+function borrarObra(){
+  if(!cur || !confirm('¿Borrar "'+(cur.titulo||'esta obra')+'"? No se puede deshacer.')) return;
+  var id=cur.id; OBRAS=OBRAS.filter(function(o){ return o.id!==id; }); LZ.set('obras',OBRAS);
+  LZ.idel('obra_'+id); LZ.idel('thumb_'+id); cur=null; volver();
+}
+
+// ---------- Claude ----------
+function fotoActual(){ return fotoNueva ? Promise.resolve(fotoNueva) : (cur ? LZ.iget('obra_'+cur.id) : Promise.resolve(null)); }
+function catalogar(){
+  var b=$('ai-btn'); if(b.disabled) return;
+  fotoActual().then(function(d){
+    if(!d){ LZ.toast('Primero cargá una foto'); return; }
+    b.disabled=true; b.textContent='Mirando la obra…';
+    var f=leerForm();
+    return LZ.claude({max_tokens:900, system:'Sos un catalogador de arte contemporáneo. Respondés solo con JSON válido, en español rioplatense, sin texto alrededor.',
+      messages:[{role:'user', content:[
+        {type:'image', source:{type:'base64', media_type:'image/jpeg', data:d.split(',')[1]}},
+        {type:'text', text:'Catalogá esta obra de un artista que trabaja con tinta, acrílico, acuarela, pastel y crayón sobre papel y tela, con temas oníricos, absurdos, de identidad y dualidad. Datos ya cargados (respetalos): '+JSON.stringify(f)+'. Devolvé JSON con: "titulo" (sugerencia breve y poética, si no hay título), "tecnica" (lista separada por comas usando solo: '+TEC.join(', ')+'), "soporte" (Papel, Tela, Madera, Cartón u Otro), "descripcion" (3 a 4 oraciones: qué se ve, composición, paleta y clima; sin adjetivos inflados), "paleta" (3 a 5 colores). No inventes medidas ni fechas.'}
+      ]}]
+    }).then(function(j){
+      var r=LZ.json(j);
+      if(!f.titulo && r.titulo) $('f-titulo').value=r.titulo;
+      if(!f.tecnica && r.tecnica) setSeg('f-tec', String(r.tecnica).split(/,\s*/));
+      if(!f.soporte && r.soporte) setSeg('f-sop',[r.soporte]);
+      if(!f.desc && r.descripcion) $('f-desc').value=r.descripcion + (r.paleta ? '\nPaleta: '+(Array.isArray(r.paleta)?r.paleta.join(', '):r.paleta)+'.' : '');
+      else if(r.descripcion) LZ.toast('Ya tenías descripción: no la cambié');
+      LZ.toast('Listo. Revisá y guardá');
+    });
+  }).catch(function(e){ LZ.toast(LZ.error(e)); if(e.status==='key') location.href='index.html#ajustes'; })
+    .then(function(){ b.disabled=false; b.textContent='Catalogar con Claude'; });
+}
+function ficha(){
+  var f=leerForm(), base=(f.titulo||'Sin título')+', '+(f.anio||'s/f')+'\n'+(f.tecnica||'Técnica s/d')+' sobre '+(f.soporte||'s/d').toLowerCase()+'\n'+(f.ancho&&f.alto?f.ancho+' × '+f.alto+' cm':'Medidas s/d')+(f.serie?'\nSerie: '+f.serie:'');
+  $('ficha-txt').textContent=base+(f.desc?'\n\n'+f.desc:'');
+  $('m-ficha').classList.add('on');
+  if(LZ.get('key','')){
+    $('ficha-txt').textContent=base+'\n\n…redactando el texto con Claude…';
+    LZ.claude({max_tokens:500, system:'Redactás textos para convocatorias de artes visuales en Argentina. Español neutro rioplatense, sobrio, en tercera persona, sin grandilocuencia.',
+      messages:[{role:'user', content:'Con estos datos escribí un párrafo de 60 a 90 palabras sobre la obra para una convocatoria. Datos: '+JSON.stringify(f)}]
+    }).then(function(j){ $('ficha-txt').textContent=base+'\n\n'+LZ.texto(j); })
+      .catch(function(e){ $('ficha-txt').textContent=base+'\n\n'+f.desc+'\n\n('+LZ.error(e)+')'; });
+  }
+}
+function inventario(){
+  if(!OBRAS.length) return LZ.toast('No hay obras');
+  var t=OBRAS.map(function(o,i){ return (i+1)+'. '+(o.titulo||'Sin título')+' ('+(o.anio||'s/f')+') · '+(o.tecnica||'s/d')+' sobre '+(o.soporte||'s/d').toLowerCase()+' · '+(o.ancho&&o.alto?o.ancho+'×'+o.alto+' cm':'s/m')+' · '+(o.estado||'Disponible')+(o.precio?' · '+o.precio:''); }).join('\n');
+  $('ficha-txt').textContent='INVENTARIO · '+OBRAS.length+' obras\n\n'+t;
+  $('m-ficha').classList.add('on');
+}
+pintar();
+</script>
+</body>
+</html>

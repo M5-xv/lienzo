@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Metrónomo · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+#disp{background:var(--o);color:#000;padding:14px 16px 10px;position:relative}
+#bpm{font-family:var(--disp);font-weight:900;font-size:124px;line-height:.82;letter-spacing:-5px}
+#disp .r{position:absolute;right:16px;top:16px;text-align:right;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+#disp .r b{display:block;font-family:var(--disp);font-size:20px;letter-spacing:0;margin-top:2px}
+#luces{display:flex;margin:12px -3px 4px}
+#luces i{flex:1;height:26px;margin:0 3px;border:2px solid #000;background:transparent;transition:background .05s}
+#luces i.ac{border-width:4px}
+#luces i.on{background:#000}
+#luces i.on.ac{background:#000;box-shadow:0 0 0 2px var(--blue)}
+.ctl{display:flex;align-items:center;margin:12px 0 4px}
+.ctl button{width:66px;height:54px;border:2px solid var(--o);color:var(--o);font-family:var(--disp);font-weight:900;font-size:30px}
+.ctl button:active{background:var(--o);color:#000}
+.ctl input{flex:1;margin:0 12px}
+#play{height:74px;font-family:var(--disp);font-weight:900;font-size:34px;letter-spacing:2px;margin-top:8px}
+#play.on{background:none;border:3px solid var(--blue);color:var(--blue);box-shadow:var(--glow)}
+#tap{height:56px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" href="index.html">‹ Inicio</a><h1>Metrónomo</h1><span class="act" id="mute-hint"></span></div>
+  <div id="disp">
+    <div id="bpm">120</div>
+    <div class="r">BPM<b id="tname">Allegro</b><span id="tsig">4/4</span></div>
+    <div id="luces"></div>
+  </div>
+  <div class="stripes"></div>
+  <div class="wrap">
+    <div class="ctl">
+      <button id="menos">−</button>
+      <input type="range" id="slider" min="30" max="260" value="120">
+      <button id="mas">+</button>
+    </div>
+    <button class="btn" id="play">Start</button>
+    <div class="row mt"><button class="btn b" id="tap">Tap tempo</button></div>
+
+    <div class="blk mt">
+      <div class="tagl">Compás</div>
+      <div class="seg" id="sig"><button data-v="2/4">2/4</button><button data-v="3/4">3/4</button><button data-v="4/4" class="on">4/4</button><button data-v="5/4">5/4</button><button data-v="6/8">6/8</button><button data-v="7/8">7/8</button></div>
+      <label class="l">Subdivisión</label>
+      <div class="seg" id="sub"><button data-v="1" class="on">Negra</button><button data-v="2">Corcheas</button><button data-v="3">Tresillo</button><button data-v="4">Semicorch.</button></div>
+      <label class="l">Sonido</label>
+      <div class="seg" id="snd"><button data-v="click" class="on">Click</button><button data-v="madera">Madera</button><button data-v="bip">Bip</button><button data-v="bajo">Bajo</button></div>
+      <label class="l">Acento en el 1</label>
+      <div class="seg" id="acc"><button data-v="1" class="on">Sí</button><button data-v="0">No</button></div>
+      <label class="l">Volumen</label>
+      <input type="range" id="vol" min="0" max="100" value="80">
+    </div>
+    <div class="hint">Si no suena, revisá que el interruptor de silencio del costado del iPhone no esté activado: iOS silencia el audio web con ese botón.</div>
+  </div>
+</div>
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$;
+var P=LZ.get('metro',{bpm:120, sig:'4/4', sub:1, snd:'click', acc:true, vol:80});
+var corriendo=false, ctx=null, timer=null, proxima=0, pulso=0, subp=0, cola=[], master=null;
+var MIRAR=0.025, ADELANTE=0.12;
+
+function beats(){ return parseInt(P.sig.split('/')[0],10); }
+function acentos(){ // acentos secundarios para compases de corcheas
+  if(P.sig==='6/8') return [0,3];
+  if(P.sig==='7/8') return [0,2,4];
+  return [0];
+}
+function nombreTempo(b){ return b<60?'Largo':b<76?'Adagio':b<108?'Andante':b<120?'Moderato':b<156?'Allegro':b<176?'Vivace':'Presto'; }
+function pintar(){
+  $('bpm').textContent=P.bpm; $('slider').value=P.bpm; $('tname').textContent=nombreTempo(P.bpm); $('tsig').textContent=P.sig;
+  var n=beats(), a=acentos(), h='';
+  for(var i=0;i<n;i++) h+='<i class="'+(P.acc && a.indexOf(i)>=0?'ac':'')+'"></i>';
+  $('luces').innerHTML=h;
+  marcar('sig',P.sig); marcar('sub',String(P.sub)); marcar('snd',P.snd); marcar('acc',P.acc?'1':'0');
+  $('vol').value=P.vol;
+  LZ.set('metro',P);
+}
+function marcar(id,v){ var b=$(id).children; for(var i=0;i<b.length;i++) b[i].classList.toggle('on', b[i].getAttribute('data-v')===v); }
+function seg(id, fn){ $(id).addEventListener('click', function(e){ var v=e.target.getAttribute('data-v'); if(v===null) return; fn(v); pintar(); }); }
+seg('sig', function(v){ P.sig=v; pulso=0; subp=0; });
+seg('sub', function(v){ P.sub=parseInt(v,10); subp=0; });
+seg('snd', function(v){ P.snd=v; });
+seg('acc', function(v){ P.acc=v==='1'; });
+$('vol').addEventListener('input', function(){ P.vol=parseInt(this.value,10); if(master) master.gain.value=P.vol/100; LZ.set('metro',P); });
+
+function setBpm(b){ P.bpm=Math.max(30,Math.min(260,Math.round(b))); pintar(); }
+$('slider').addEventListener('input', function(){ setBpm(parseInt(this.value,10)); });
+function mantener(btn, d){
+  var t1=null, t2=null;
+  function paso(){ setBpm(P.bpm+d); }
+  function ini(e){ e.preventDefault(); paso(); t1=setTimeout(function(){ t2=setInterval(paso, 70); }, 380); }
+  function fin(){ clearTimeout(t1); clearInterval(t2); }
+  btn.addEventListener('touchstart', ini); btn.addEventListener('touchend', fin); btn.addEventListener('touchcancel', fin);
+  btn.addEventListener('mousedown', ini); btn.addEventListener('mouseup', fin); btn.addEventListener('mouseleave', fin);
+}
+mantener($('menos'), -1); mantener($('mas'), 1);
+
+// ---------- Tap tempo ----------
+var taps=[];
+$('tap').addEventListener('click', function(){
+  var t=Date.now(); if(taps.length && t-taps[taps.length-1]>2000) taps=[];
+  taps.push(t); if(taps.length>5) taps.shift();
+  if(taps.length>=2){ var s=0; for(var i=1;i<taps.length;i++) s+=taps[i]-taps[i-1]; setBpm(60000/(s/(taps.length-1))); }
+});
+
+// ---------- Sonido ----------
+function sonar(t, tipo){ // tipo: 2 acento, 1 pulso, 0 subdivisión
+  var o=ctx.createOscillator(), g=ctx.createGain();
+  var sec = tipo===1.6; if(sec) tipo=1;
+  var f, dur=0.05, onda='square', vol=tipo===2?1:tipo===1?0.7:0.35;
+  if(P.snd==='click'){ f = tipo===2?2000:tipo===1?1500:1100; dur=0.03; }
+  else if(P.snd==='madera'){ onda='triangle'; f = tipo===2?1250:tipo===1?900:700; dur=0.06; }
+  else if(P.snd==='bip'){ onda='sine'; f = tipo===2?1320:tipo===1?880:660; dur=0.08; }
+  else { onda='sine'; f = tipo===2?180:tipo===1?120:90; dur=0.12; vol*=1.4; }
+  if(sec){ f*=1.15; vol*=1.2; }
+  o.type=onda; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function programar(){
+  while(proxima < ctx.currentTime + ADELANTE){
+    var esPulso = subp===0;
+    var tipo = !esPulso ? 0 : (P.acc && pulso===0) ? 2 : 1;
+    // acentos secundarios (6/8, 7/8): un poco más agudos que un pulso común
+    if(tipo===1 && P.acc && acentos().indexOf(pulso)>0) tipo=1.6;
+    sonar(proxima, tipo);
+    if(esPulso) cola.push({t:proxima, b:pulso});
+    var dur = 60/P.bpm/P.sub;
+    proxima += dur;
+    subp++; if(subp>=P.sub){ subp=0; pulso=(pulso+1)%beats(); }
+  }
+}
+function dibujar(){
+  if(!corriendo) return;
+  var ahora=ctx.currentTime, ult=null;
+  while(cola.length && cola[0].t<=ahora){ ult=cola.shift(); }
+  if(ult){
+    var ls=$('luces').children;
+    for(var i=0;i<ls.length;i++) ls[i].classList.toggle('on', i===ult.b);
+    setTimeout(function(){ for(var i=0;i<ls.length;i++) ls[i].classList.remove('on'); }, Math.min(120, 30000/P.bpm));
+  }
+  requestAnimationFrame(dibujar);
+}
+function arrancar(){
+  ctx=LZ.audio(); if(!ctx){ LZ.toast('Este navegador no tiene audio web'); return; }
+  LZ.desbloquear();
+  if(!master){ master=ctx.createGain(); master.connect(ctx.destination); }
+  master.gain.value=P.vol/100;
+  pulso=0; subp=0; cola=[]; proxima=ctx.currentTime+0.06;
+  corriendo=true; timer=setInterval(programar, MIRAR*1000); programar();
+  requestAnimationFrame(dibujar);
+  $('play').textContent='Stop'; $('play').classList.add('on');
+}
+function parar(){
+  corriendo=false; clearInterval(timer);
+  $('play').textContent='Start'; $('play').classList.remove('on');
+  var ls=$('luces').children; for(var i=0;i<ls.length;i++) ls[i].classList.remove('on');
+}
+$('play').addEventListener('click', function(){ if(corriendo) parar(); else arrancar(); });
+document.addEventListener('visibilitychange', function(){ if(document.hidden && corriendo) parar(); });
+pintar();
+</script>
+</body>
+</html>

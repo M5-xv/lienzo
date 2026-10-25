@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Gaffer · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.fx{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.fx:last-child{border-bottom:0}
+.fx .n{flex:1;font-size:13px;line-height:1.3}
+.fx .n small{display:block;color:var(--dim);font-size:10px;letter-spacing:1px}
+.fx .q{display:flex;align-items:center}
+.fx .q button{width:32px;height:32px;border:2px solid var(--o);color:var(--o);font-weight:700;font-size:16px}
+.fx .q span{width:30px;text-align:center;font-size:15px;font-weight:700}
+.big{display:flex;align-items:flex-end;justify-content:space-between}
+.circ{display:flex;flex-wrap:wrap;margin:6px -3px 0}
+.circ div{width:25%;padding:3px}
+.circ div p{border:2px solid var(--line);padding:8px 4px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--mute)}
+.circ div p b{display:block;font-family:var(--disp);font-weight:900;font-size:26px;color:var(--o);letter-spacing:0}
+.gel{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;margin-bottom:6px;border:2px solid var(--line)}
+.gel.best{border-color:var(--blue);box-shadow:var(--glow)}
+.gel b{font-size:14px}
+.gel span{font-size:11px;color:var(--mute)}
+.seq{display:flex;flex-wrap:wrap;margin:0 -2px}
+.seq span{margin:2px;padding:6px 8px;border:1px solid var(--line);font-size:12px;color:var(--mute)}
+.seq span.on{background:var(--o);color:#000;border-color:var(--o);font-weight:700}
+.pane{display:none}
+.pane.on{display:block}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" href="index.html">‹ Inicio</a><h1>Gaffer</h1><span class="act"></span></div>
+  <div class="tabs" id="tabs">
+    <button data-p="carga" class="on">Carga</button><button data-p="expo">Expo</button><button data-p="dist">Distancia</button><button data-p="color">Color</button><button data-p="nd">ND/Stops</button>
+  </div>
+  <div class="wrap">
+
+    <!-- ===== CARGA ELÉCTRICA ===== -->
+    <section class="pane on" id="p-carga">
+      <div class="blk o">
+        <div class="big">
+          <div><div class="unit">Consumo total</div><div class="out" id="c-w">0 W</div></div>
+          <div style="text-align:right"><div class="unit" id="c-vlab">Amperes</div><div class="out b" id="c-a">0 A</div></div>
+        </div>
+        <div class="circ" id="c-circ"></div>
+        <div class="hint" id="c-gen"></div>
+      </div>
+      <div class="blk">
+        <div class="tagl">Red</div>
+        <div class="seg" id="c-v"><button data-v="220" class="on">220 V</button><button data-v="110">110 V</button><button data-v="380">3F 380 V</button></div>
+        <label class="l">Factor de potencia</label>
+        <div class="seg" id="c-pf"><button data-v="1" class="on">1.0 Tungst.</button><button data-v="0.9">0.9 LED/HMI</button><button data-v="0.8">0.8 Viejo</button></div>
+      </div>
+      <div class="blk">
+        <div class="tagl">Equipos</div>
+        <div id="c-lista"></div>
+        <div class="row mt">
+          <select class="field" id="c-pre" style="flex:2"></select>
+          <button class="btn sm" id="c-add" style="flex:none;height:44px;margin-bottom:10px">+ Agregar</button>
+        </div>
+        <div class="row" id="c-custom" style="display:none">
+          <input class="field" id="c-cn" placeholder="Nombre">
+          <input class="field" id="c-cw" type="number" inputmode="decimal" placeholder="Watts">
+        </div>
+        <button class="btn g" id="c-clear">Vaciar lista</button>
+        <div class="hint">Circuitos calculados al 80 % de la térmica. Los HMI y algunos LED tienen pico de arranque: dejá margen. Valores de equipos aproximados.</div>
+      </div>
+    </section>
+
+    <!-- ===== EXPOSICIÓN ===== -->
+    <section class="pane" id="p-expo">
+      <div class="blk o">
+        <div class="unit" id="e-lab">Diafragma resultante</div>
+        <div class="out" id="e-out">f/—</div>
+        <div class="hint" id="e-sub"></div>
+      </div>
+      <div class="blk">
+        <div class="seg" id="e-modo"><button data-v="lux" class="on">Tengo lux › f</button><button data-v="f">Quiero f › lux</button></div>
+        <label class="l" id="e-inlab">Luz incidente (lux)</label>
+        <input class="field" id="e-in" type="number" inputmode="decimal" value="1000">
+        <div class="seg" id="e-un"><button data-v="lux" class="on">Lux</button><button data-v="fc">Foot-candles</button></div>
+        <label class="l">ISO / EI</label>
+        <div class="seg" id="e-iso"><button data-v="200">200</button><button data-v="400">400</button><button data-v="800" class="on">800</button><button data-v="1600">1600</button><button data-v="3200">3200</button></div>
+        <div class="row">
+          <div><label class="l">FPS</label><input class="field" id="e-fps" type="number" inputmode="decimal" value="24"></div>
+          <div><label class="l">Obturador °</label><input class="field" id="e-ang" type="number" inputmode="decimal" value="180"></div>
+        </div>
+        <div class="hint">Fórmula de medición incidente con constante C = 250. Tomalo como punto de partida y confirmá con tu fotómetro.</div>
+      </div>
+    </section>
+
+    <!-- ===== DISTANCIA ===== -->
+    <section class="pane" id="p-dist">
+      <div class="blk o">
+        <div class="unit">Luz a la nueva distancia</div>
+        <div class="out" id="d-out">—</div>
+        <div class="hint" id="d-sub"></div>
+      </div>
+      <div class="blk">
+        <div class="tagl">Ley del cuadrado inverso</div>
+        <label class="l">Lux medidos</label>
+        <input class="field" id="d-lux" type="number" inputmode="decimal" value="2000">
+        <div class="row">
+          <div><label class="l">A distancia (m)</label><input class="field" id="d-d1" type="number" inputmode="decimal" value="2"></div>
+          <div><label class="l">Nueva distancia (m)</label><input class="field" id="d-d2" type="number" inputmode="decimal" value="3"></div>
+        </div>
+        <label class="l">¿A qué distancia tengo… (lux)?</label>
+        <input class="field" id="d-obj" type="number" inputmode="decimal" placeholder="Ej. 800">
+        <div class="kv"><span>Distancia necesaria</span><b id="d-dobj">—</b></div>
+      </div>
+      <div class="blk">
+        <div class="tagl">Tamaño del haz</div>
+        <div class="row">
+          <div><label class="l">Apertura del haz °</label><input class="field" id="d-ang" type="number" inputmode="decimal" value="30"></div>
+          <div><label class="l">Distancia (m)</label><input class="field" id="d-bd" type="number" inputmode="decimal" value="4"></div>
+        </div>
+        <div class="kv"><span>Diámetro del círculo de luz</span><b id="d-diam">—</b></div>
+      </div>
+    </section>
+
+    <!-- ===== COLOR ===== -->
+    <section class="pane" id="p-color">
+      <div class="blk o">
+        <div class="unit">Corrección necesaria</div>
+        <div class="out" id="k-out">—</div>
+        <div class="hint" id="k-sub"></div>
+      </div>
+      <div class="blk">
+        <label class="l">Fuente (K)</label>
+        <input class="field" id="k-src" type="number" inputmode="numeric" value="3200">
+        <div class="seg wrapit" id="k-ps"></div>
+        <label class="l">Objetivo (K)</label>
+        <input class="field" id="k-dst" type="number" inputmode="numeric" value="5600">
+        <div class="seg wrapit" id="k-pd"></div>
+      </div>
+      <div class="blk">
+        <div class="tagl">Geles sugeridos</div>
+        <div id="k-gels"></div>
+        <div class="hint">Valores en mired de la serie Lee (aprox.). Si la fuente tira a verde (tubos viejos, sodio), sumá Minus Green.</div>
+      </div>
+    </section>
+
+    <!-- ===== ND / STOPS ===== -->
+    <section class="pane" id="p-nd">
+      <div class="blk o">
+        <div class="big">
+          <div><div class="unit">ND</div><div class="out" id="n-nd">0.9</div></div>
+          <div style="text-align:right"><div class="unit">Pasa</div><div class="out b" id="n-tr">12.5 %</div></div>
+        </div>
+        <div class="hint" id="n-sub"></div>
+      </div>
+      <div class="blk">
+        <label class="l">Pasos (stops)</label>
+        <div class="row" style="align-items:center">
+          <button class="btn g" id="n-m" style="flex:none;width:60px">−⅓</button>
+          <div class="out" id="n-st" style="text-align:center;font-size:52px">3</div>
+          <button class="btn g" id="n-p" style="flex:none;width:60px">+⅓</button>
+        </div>
+        <label class="l mt">Diafragma de partida</label>
+        <div class="seq" id="n-fbase"></div>
+        <div class="kv mt"><span>Para mantener exposición, abrí a</span><b id="n-f">—</b></div>
+      </div>
+      <div class="blk">
+        <div class="tagl">Cambio de ISO</div>
+        <div class="row">
+          <div><label class="l">ISO de</label><input class="field" id="n-i1" type="number" inputmode="numeric" value="800"></div>
+          <div><label class="l">ISO a</label><input class="field" id="n-i2" type="number" inputmode="numeric" value="3200"></div>
+        </div>
+        <div class="kv"><span>Diferencia</span><b id="n-isod">—</b></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$;
+function num(id){ var v=parseFloat(String($(id).value).replace(',','.')); return isNaN(v)?0:v; }
+function segVal(id){ var b=$(id).querySelector('.on'); return b?b.getAttribute('data-v'):null; }
+function seg(id, fn){ $(id).addEventListener('click', function(e){ var t=e.target; if(t.tagName!=='BUTTON') return; var bs=this.children; for(var i=0;i<bs.length;i++) bs[i].classList.remove('on'); t.classList.add('on'); fn(t.getAttribute('data-v')); }); }
+function fmt(n, d){ if(!isFinite(n)) return '—'; return (Math.round(n*Math.pow(10,d||0))/Math.pow(10,d||0)).toLocaleString('es-AR'); }
+
+// ---------- Pestañas ----------
+$('tabs').addEventListener('click', function(e){
+  var p=e.target.getAttribute('data-p'); if(!p) return;
+  var bs=this.children; for(var i=0;i<bs.length;i++) bs[i].classList.toggle('on', bs[i]===e.target);
+  var ps=document.querySelectorAll('.pane'); for(i=0;i<ps.length;i++) ps[i].classList.toggle('on', ps[i].id==='p-'+p);
+  LZ.set('gaffer_tab', p);
+});
+var tab0=LZ.get('gaffer_tab','carga'); var tb=document.querySelector('[data-p="'+tab0+'"]'); if(tb) tb.click();
+
+// ================= CARGA =================
+var PRE=[
+  ['Fresnel 150 W',150],['Fresnel 300 W',300],['Fresnel 650 W',650],['Fresnel 1K',1000],['Fresnel 2K',2000],['Fresnel 5K',5000],['Fresnel 10K',10000],
+  ['HMI 575 W',575],['HMI 1.2K',1200],['HMI 2.5K',2500],['HMI 4K',4000],['HMI 6K',6000],
+  ['LED 60 W',60],['LED 100 W',100],['LED 200 W',200],['LED 300 W',300],['LED 600 W',600],['LED 1200 W',1200],
+  ['Panel LED 1×1',100],['Tubo LED 4\'',40],['Fluorescente 4 tubos 4\'',220],['Open face 800 W',800],['Par 64 1K',1000],
+  ['Monitor de cámara',30],['Video village (aprox.)',300],['Otro (manual)',0]
+];
+var lista=LZ.get('gaffer_lista',[]), V=parseFloat(LZ.get('gaffer_v','220')), PF=parseFloat(LZ.get('gaffer_pf','1'));
+$('c-pre').innerHTML=PRE.map(function(p,i){ return '<option value="'+i+'">'+p[0]+(p[1]?' · '+p[1]+' W':'')+'</option>'; }).join('');
+$('c-pre').addEventListener('change', function(){ $('c-custom').style.display = PRE[this.value][1] ? 'none' : 'flex'; });
+$('c-add').addEventListener('click', function(){
+  var p=PRE[$('c-pre').value], n=p[0], w=p[1];
+  if(!w){ w=num('c-cw'); n=$('c-cn').value.trim()||'Equipo'; if(!w) return LZ.toast('Poné los watts'); }
+  var ex=lista.filter(function(x){ return x.n===n && x.w===w; })[0];
+  if(ex) ex.q++; else lista.push({n:n, w:w, q:1});
+  guardarLista();
+});
+$('c-clear').addEventListener('click', function(){ if(lista.length && confirm('¿Vaciar la lista?')){ lista=[]; guardarLista(); } });
+function cambiarQ(i, d){ lista[i].q+=d; if(lista[i].q<=0) lista.splice(i,1); guardarLista(); }
+function guardarLista(){ LZ.set('gaffer_lista', lista); pintarCarga(); }
+function pintarCarga(){
+  $('c-lista').innerHTML = lista.length ? lista.map(function(x,i){
+    return '<div class="fx"><div class="n">'+LZ.esc(x.n)+'<small>'+fmt(x.w)+' W c/u · '+fmt(x.w*x.q)+' W</small></div><div class="q"><button onclick="cambiarQ('+i+',-1)">−</button><span>'+x.q+'</span><button onclick="cambiarQ('+i+',1)">+</button></div></div>';
+  }).join('') : '<div class="hint">Agregá equipos para calcular la carga.</div>';
+  var W=0; lista.forEach(function(x){ W+=x.w*x.q; });
+  var VA=W/PF, A, lab;
+  if(V===380){ A=VA/(Math.sqrt(3)*380); lab='A por fase'; } else { A=VA/V; lab='Amperes'; }
+  $('c-w').textContent = W>=10000 ? fmt(W/1000,1)+' kW' : fmt(W)+' W';
+  $('c-a').textContent = fmt(A,1)+' A'; $('c-vlab').textContent=lab;
+  $('c-circ').innerHTML=[10,16,20,32].map(function(t){ var n=A ? Math.ceil(A/(t*0.8)) : 0; return '<div><p><b>'+n+'</b>circ. '+t+' A</p></div>'; }).join('');
+  $('c-gen').textContent = W ? 'Generador mínimo sugerido: '+fmt(VA/0.8/1000,1)+' kVA (trabajando al 80 %).' : '';
+}
+seg('c-v', function(v){ V=parseFloat(v); LZ.set('gaffer_v',v); pintarCarga(); });
+seg('c-pf', function(v){ PF=parseFloat(v); LZ.set('gaffer_pf',v); pintarCarga(); });
+(function(){ var b=document.querySelector('#c-v [data-v="'+V+'"]'), c=document.querySelector('#c-pf [data-v="'+PF+'"]');
+  if(b){ document.querySelector('#c-v .on').classList.remove('on'); b.classList.add('on'); }
+  if(c){ document.querySelector('#c-pf .on').classList.remove('on'); c.classList.add('on'); } })();
+pintarCarga();
+
+// ================= EXPOSICIÓN =================
+var C=250, eModo='lux', eUn='lux';
+var FSTOPS=[1,1.4,2,2.8,4,5.6,8,11,16,22,32];
+function nombreF(N){ var t=[1,1.1,1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22,25,29,32]; var b=t[0]; t.forEach(function(x){ if(Math.abs(Math.log(x/N))<Math.abs(Math.log(b/N))) b=x; }); return b; }
+function calcExpo(){
+  var S=parseFloat(segVal('e-iso')), t=num('e-ang')/360/num('e-fps'), v=num('e-in');
+  if(eModo==='lux'){
+    var E = eUn==='fc' ? v*10.764 : v;
+    var N = Math.sqrt(E*S*t/C);
+    $('e-lab').textContent='Diafragma resultante'; $('e-out').textContent='f/'+fmt(nombreF(N),1);
+    $('e-sub').textContent='Exacto: f/'+fmt(N,2)+' · obturación 1/'+fmt(1/t)+' s';
+  } else {
+    var E2 = C*v*v/(S*t);
+    $('e-lab').textContent='Luz necesaria'; $('e-out').textContent=fmt(E2)+' lux';
+    $('e-sub').textContent='= '+fmt(E2/10.764)+' foot-candles · obturación 1/'+fmt(1/t)+' s';
+  }
+}
+seg('e-modo', function(v){ eModo=v; $('e-inlab').textContent = v==='lux' ? 'Luz incidente' : 'Diafragma deseado (f)'; $('e-un').style.display = v==='lux' ? 'flex' : 'none'; $('e-in').value = v==='lux' ? 1000 : 2.8; calcExpo(); });
+seg('e-un', function(v){ eUn=v; calcExpo(); });
+seg('e-iso', calcExpo);
+['e-in','e-fps','e-ang'].forEach(function(id){ $(id).addEventListener('input', calcExpo); });
+calcExpo();
+
+// ================= DISTANCIA =================
+function calcDist(){
+  var L=num('d-lux'), d1=num('d-d1'), d2=num('d-d2');
+  var L2=L*Math.pow(d1/d2,2), st=2*Math.log(d2/d1)/Math.LN2;
+  $('d-out').textContent = d1&&d2 ? fmt(L2)+' lux' : '—';
+  $('d-sub').textContent = d1&&d2 ? (st>0?'Perdés ':'Ganás ')+fmt(Math.abs(st),2)+' stops ('+fmt(L2/10.764)+' fc)' : '';
+  var o=num('d-obj'); $('d-dobj').textContent = o&&L&&d1 ? fmt(d1*Math.sqrt(L/o),2)+' m' : '—';
+  var a=num('d-ang'), bd=num('d-bd'); $('d-diam').textContent = a&&bd ? fmt(2*bd*Math.tan(a*Math.PI/360),2)+' m' : '—';
+}
+['d-lux','d-d1','d-d2','d-obj','d-ang','d-bd'].forEach(function(id){ $(id).addEventListener('input', calcDist); });
+calcDist();
+
+// ================= COLOR =================
+var KP=[['Vela',1900],['Sodio',2100],['Tungst.',3200],['Atardecer',3500],['Luz día',5600],['Nublado',6500],['Sombra',7500]];
+['k-ps','k-pd'].forEach(function(id){
+  $(id).innerHTML=KP.map(function(k){ return '<button data-v="'+k[1]+'">'+k[0]+'</button>'; }).join('');
+  $(id).addEventListener('click', function(e){ var v=e.target.getAttribute('data-v'); if(!v) return; $(id==='k-ps'?'k-src':'k-dst').value=v; calcColor(); });
+});
+var GELES=[['Full CTO',159,'O'],['3/4 CTO',124,'O'],['1/2 CTO',109,'O'],['1/4 CTO',64,'O'],['1/8 CTO',26,'O'],
+  ['Full CTB',-137,'B'],['3/4 CTB',-112,'B'],['1/2 CTB',-78,'B'],['1/4 CTB',-35,'B'],['1/8 CTB',-18,'B']];
+function calcColor(){
+  var s=num('k-src'), d=num('k-dst'); if(!s||!d){ $('k-out').textContent='—'; return; }
+  var need=1e6/d-1e6/s;
+  $('k-out').textContent=(need>0?'+':'')+fmt(need)+' mired';
+  $('k-sub').textContent= Math.abs(need)<8 ? 'Diferencia mínima: no hace falta gel.' : (need>0 ? 'Hay que calentar la fuente (CTO).' : 'Hay que enfriar la fuente (CTB).');
+  var fam = need>0 ? 'O' : 'B', ops=[];
+  var gs=GELES.filter(function(g){ return g[2]===fam; });
+  gs.forEach(function(g){ ops.push({n:g[0], m:g[1]}); });
+  gs.forEach(function(a,i){ gs.forEach(function(b,j){ if(j>=i) ops.push({n:a[0]+' + '+b[0], m:a[1]+b[1]}); }); });
+  ops.forEach(function(o){ o.e=Math.abs(o.m-need); o.k=1e6/(1e6/s+o.m); });
+  ops.sort(function(a,b){ return a.e-b.e || a.n.length-b.n.length; });
+  $('k-gels').innerHTML = Math.abs(need)<8 ? '<div class="hint">Sin corrección.</div>' : ops.slice(0,4).map(function(o,i){
+    return '<div class="gel'+(i===0?' best':'')+'"><b>'+o.n+'</b><span>'+(o.m>0?'+':'')+o.m+' › '+fmt(o.k)+' K</span></div>';
+  }).join('');
+}
+['k-src','k-dst'].forEach(function(id){ $(id).addEventListener('input', calcColor); });
+calcColor();
+
+// ================= ND / STOPS =================
+var st=3, fb=4;
+$('n-fbase').innerHTML=FSTOPS.map(function(f){ return '<span data-v="'+f+'">f/'+f+'</span>'; }).join('');
+$('n-fbase').addEventListener('click', function(e){ var v=e.target.getAttribute('data-v'); if(!v) return; fb=parseFloat(v); calcND(); });
+$('n-m').addEventListener('click', function(){ st=Math.max(0, Math.round((st-1/3)*3)/3); calcND(); });
+$('n-p').addEventListener('click', function(){ st=Math.min(13, Math.round((st+1/3)*3)/3); calcND(); });
+function tercios(x){ var e=Math.floor(x+1e-9), r=Math.round((x-e)*3); return (e? e : '') + (r===1?' ⅓':r===2?' ⅔':'') || '0'; }
+function calcND(){
+  $('n-st').textContent=tercios(st);
+  $('n-nd').textContent=fmt(st*0.3,1);
+  var tr=Math.pow(2,-st)*100; $('n-tr').textContent=(tr<1?fmt(tr,2):fmt(tr,1))+' %';
+  $('n-sub').textContent='Factor de filtro ×'+fmt(Math.pow(2,st),1);
+  var spans=$('n-fbase').children; for(var i=0;i<spans.length;i++) spans[i].classList.toggle('on', parseFloat(spans[i].getAttribute('data-v'))===fb);
+  var nf=fb/Math.pow(Math.SQRT2, st);
+  $('n-f').textContent = nf<0.95 ? 'No alcanza (f/'+fmt(nf,1)+')' : 'f/'+fmt(nombreF(nf),1);
+  var i1=num('n-i1'), i2=num('n-i2'), d=i1&&i2 ? Math.log(i2/i1)/Math.LN2 : NaN;
+  $('n-isod').textContent = isFinite(d) ? (d>0?'+':'')+fmt(d,2)+' stops' : '—';
+}
+['n-i1','n-i2'].forEach(function(id){ $(id).addEventListener('input', calcND); });
+calcND();
+</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Marcos · Lienzo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+#vista{height:44vh;flex-shrink:0;background:#000;display:flex;align-items:center;justify-content:center;border-bottom:3px solid var(--o);position:relative}
+#cv{max-width:100%;max-height:100%;display:block}
+#vacio{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--o);font-size:11px;letter-spacing:2px;text-transform:uppercase;text-align:center;padding:20px}
+.sw{display:flex;flex-wrap:wrap;margin:0 -4px 8px}
+.sw button{width:48px;margin:4px;text-align:center;font-size:8px;letter-spacing:.5px;color:var(--mute);text-transform:uppercase}
+.sw button i{display:block;height:40px;border:2px solid var(--line);margin-bottom:4px}
+.sw button.on{color:var(--o)}
+.sw button.on i{border-color:var(--blue);box-shadow:var(--glow)}
+.vl{display:flex;justify-content:space-between;font-size:10px;letter-spacing:2px;color:var(--mute);text-transform:uppercase}
+.vl b{color:var(--o)}
+#lista-obras{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px 6px}
+#lista-obras div{flex:none;width:64px;height:64px;margin:4px;border:2px solid var(--line);background:#000 center/cover no-repeat}
+#res-img{max-width:100%;display:block;margin:0 auto;border:2px solid var(--line);-webkit-touch-callout:default}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" href="index.html">‹ Inicio</a><h1>Marcos</h1><button class="act" onclick="exportar()">JPG</button></div>
+  <div id="vista">
+    <canvas id="cv"></canvas>
+    <div id="vacio" onclick="$('foto-in').click()">+ Cargá la foto de una obra<br><br>o elegila de tu archivo abajo</div>
+  </div>
+  <div class="wrap">
+    <input type="file" id="foto-in" accept="image/*" style="display:none">
+    <div class="blk">
+      <div class="tagl">Obra</div>
+      <div id="lista-obras"></div>
+      <button class="btn g" onclick="$('foto-in').click()">Cargar foto</button>
+      <div class="row mt">
+        <div><label class="l">Ancho (cm)</label><input class="field" id="ancho" type="number" inputmode="decimal" value="30"></div>
+        <div><label class="l">Alto (cm)</label><input class="field" id="alto" type="number" inputmode="decimal" value="40"></div>
+      </div>
+      <button class="btn sm g" onclick="ajustarAFoto()">Proporción de la foto</button>
+    </div>
+
+    <div class="blk">
+      <div class="tagl">Marco</div>
+      <div class="sw" id="sw-marco"></div>
+      <div class="vl"><span>Ancho del marco</span><b id="v-fw">3 cm</b></div>
+      <input type="range" id="fw" min="0.5" max="10" step="0.5" value="3">
+      <label class="l">Perfil</label>
+      <div class="seg" id="perfil"><button data-v="plano" class="on">Plano</button><button data-v="biselado">Biselado</button><button data-v="caja">Caja</button></div>
+    </div>
+
+    <div class="blk">
+      <div class="tagl">Paspartú</div>
+      <div class="sw" id="sw-pp"></div>
+      <div class="vl"><span>Ancho del paspartú</span><b id="v-pw">6 cm</b></div>
+      <input type="range" id="pw" min="0" max="20" step="0.5" value="6">
+      <label class="l">Base más ancha (clásico)</label>
+      <div class="seg" id="peso"><button data-v="1">Sí</button><button data-v="0" class="on">No</button></div>
+    </div>
+
+    <div class="blk">
+      <div class="tagl">Pared</div>
+      <div class="sw" id="sw-pared"></div>
+    </div>
+    <button class="btn" onclick="exportar()">Crear imagen JPG</button>
+    <div class="hint">La imagen sale en alta (hasta 1800 px). Después la guardás en Fotos manteniéndola apretada.</div>
+  </div>
+</div>
+
+<div class="modal" id="m-res">
+  <div class="wrap">
+    <div class="tagl">Tu obra enmarcada</div>
+    <img id="res-img" alt="Obra enmarcada">
+    <div class="hint" style="margin:12px 0">Mantené apretada la imagen y tocá "Guardar imagen" para mandarla a Fotos.</div>
+    <button class="btn g" onclick="$('m-res').classList.remove('on')">Cerrar</button>
+  </div>
+</div>
+
+<script src="lienzo.js"></script>
+<script>
+var $=LZ.$;
+var MARCOS=[
+  {k:'ninguno', n:'Sin', c:null},
+  {k:'negro', n:'Negro', c:['#1c1c1c','#0c0c0c']},
+  {k:'blanco', n:'Blanco', c:['#f2f0ea','#d9d6ce']},
+  {k:'natural', n:'Natural', c:['#d8bb8e','#b8986a'], veta:1},
+  {k:'roble', n:'Roble', c:['#a87a46','#7d562c'], veta:1},
+  {k:'nogal', n:'Nogal', c:['#5d3d26','#3b2416'], veta:1},
+  {k:'dorado', n:'Dorado', c:['#f1d27b','#9a7426'], metal:1},
+  {k:'plata', n:'Plata', c:['#eceef0','#8e9296'], metal:1},
+  {k:'naranja', n:'Naranja', c:['#ff7a1a','#c94f00']},
+  {k:'azul', n:'Neón', c:['#2ec5ff','#0b6f99']}
+];
+var PPS=[{k:'blanco',c:'#f7f5ef'},{k:'marfil',c:'#eee4cf'},{k:'crudo',c:'#ddd2bb'},{k:'gris',c:'#9a9a98'},{k:'negro',c:'#161616'},{k:'naranja',c:'#ff6a00'},{k:'azul',c:'#1d3557'}];
+var PAREDES=[{k:'blanca',c:'#ecebe7'},{k:'gris',c:'#b9b8b4'},{k:'hormigón',c:'#8d8c88',ruido:1},{k:'negra',c:'#1b1b1b'},{k:'naranja',c:'#ff6a00'},{k:'verde',c:'#3f5a4a'}];
+var E=LZ.get('marcos',{marco:'negro', fw:3, perfil:'plano', pp:'blanco', pw:6, peso:false, pared:'blanca'});
+var img=null;
+
+function swatches(id, arr, key, colorFn){
+  $(id).innerHTML=arr.map(function(x){ return '<button data-v="'+x.k+'"><i style="background:'+colorFn(x)+'"></i>'+(x.n||x.k)+'</button>'; }).join('');
+  $(id).addEventListener('click', function(e){ var b=e.target.closest ? e.target.closest('button') : null; if(!b) return; E[key]=b.getAttribute('data-v'); marcarTodo(); render(); });
+}
+swatches('sw-marco', MARCOS, 'marco', function(m){ return m.c ? 'linear-gradient(135deg,'+m.c[0]+','+m.c[1]+')' : 'repeating-linear-gradient(45deg,#000 0,#000 5px,#222 5px,#222 10px)'; });
+swatches('sw-pp', PPS, 'pp', function(p){ return p.c; });
+swatches('sw-pared', PAREDES, 'pared', function(p){ return p.c; });
+function marcar(id, v){ var b=$(id).children; for(var i=0;i<b.length;i++) b[i].classList.toggle('on', b[i].getAttribute('data-v')===v); }
+function marcarTodo(){
+  marcar('sw-marco',E.marco); marcar('sw-pp',E.pp); marcar('sw-pared',E.pared); marcar('perfil',E.perfil); marcar('peso',E.peso?'1':'0');
+  $('fw').value=E.fw; $('pw').value=E.pw; $('v-fw').textContent=E.fw+' cm'; $('v-pw').textContent=E.pw ? E.pw+' cm' : 'sin paspartú';
+  LZ.set('marcos',E);
+}
+['perfil','peso'].forEach(function(id){ $(id).addEventListener('click', function(e){ var v=e.target.getAttribute('data-v'); if(v===null) return; if(id==='peso') E.peso=v==='1'; else E.perfil=v; marcarTodo(); render(); }); });
+$('fw').addEventListener('input', function(){ E.fw=parseFloat(this.value); marcarTodo(); render(); });
+$('pw').addEventListener('input', function(){ E.pw=parseFloat(this.value); marcarTodo(); render(); });
+['ancho','alto'].forEach(function(id){ $(id).addEventListener('input', render); });
+
+// ---------- Cargar obra ----------
+function usar(dataUrl, w, h){
+  var im=new Image();
+  im.onload=function(){ img=im; $('vacio').style.display='none'; if(w&&h){ $('ancho').value=w; $('alto').value=h; } else ajustarAFoto(); render(); };
+  im.src=dataUrl;
+}
+function ajustarAFoto(){ if(!img) return; var a=parseFloat($('ancho').value)||30; $('alto').value=Math.round(a*img.height/img.width*10)/10; render(); }
+$('foto-in').addEventListener('change', function(){
+  var f=this.files[0]; this.value=''; if(!f) return;
+  LZ.toast('Procesando foto…');
+  LZ.foto(f, 1600, 0.9).then(function(d){ usar(d); }).catch(function(){ LZ.toast('No pude leer la foto'); });
+});
+var OBRAS=LZ.get('obras',[]);
+if(OBRAS.length){
+  $('lista-obras').innerHTML=OBRAS.slice().reverse().map(function(o){ return '<div id="mo-'+o.id+'" onclick="desdeArchivo(\''+o.id+'\')"></div>'; }).join('');
+  OBRAS.forEach(function(o){ LZ.iget('thumb_'+o.id).then(function(d){ var el=$('mo-'+o.id); if(el && d) el.style.backgroundImage='url('+d+')'; }); });
+} else $('lista-obras').style.display='none';
+function desdeArchivo(id){
+  var o=OBRAS.filter(function(x){ return x.id===id; })[0];
+  LZ.iget('obra_'+id).then(function(d){ if(d) usar(d, parseFloat(o.ancho)||0, parseFloat(o.alto)||0); else LZ.toast('Esa obra no tiene foto'); });
+}
+
+// ---------- Dibujo ----------
+function mezcla(hex, k){ // k>0 aclara, k<0 oscurece
+  var n=parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255;
+  function f(c){ return Math.round(k>0 ? c+(255-c)*k : c*(1+k)); }
+  return 'rgb('+f(r)+','+f(g)+','+f(b)+')';
+}
+function trapecio(x, pts, fill){ x.beginPath(); x.moveTo(pts[0],pts[1]); for(var i=2;i<pts.length;i+=2) x.lineTo(pts[i],pts[i+1]); x.closePath(); x.fillStyle=fill; x.fill(); }
+var semilla=1;
+function rnd(){ semilla=(semilla*16807)%2147483647; return semilla/2147483647; }
+function dibujar(x, W, H){
+  semilla=12345;
+  var aw=parseFloat($('ancho').value)||30, ah=parseFloat($('alto').value)||40;
+  var m=MARCOS.filter(function(z){ return z.k===E.marco; })[0] || MARCOS[1];
+  var pp=PPS.filter(function(z){ return z.k===E.pp; })[0], pared=PAREDES.filter(function(z){ return z.k===E.pared; })[0];
+  var fw = m.c ? E.fw : 0, pw=E.pw, pb = E.peso && pw ? pw*1.25 : pw;
+  var tw=aw+2*pw+2*fw, th=ah+pw+pb+2*fw;
+  var s=Math.min(W/(tw*1.35), H/(th*1.35)); // px por cm, con aire alrededor
+  // pared
+  x.fillStyle=pared.c; x.fillRect(0,0,W,H);
+  if(pared.ruido){ for(var i=0;i<W*H/350;i++){ x.fillStyle='rgba('+(rnd()<.5?'0,0,0':'255,255,255')+','+(rnd()*0.08)+')'; x.fillRect(rnd()*W, rnd()*H, 2, 2); } }
+  var X=(W-tw*s)/2, Y=(H-th*s)/2, F=fw*s;
+  // sombra sobre la pared
+  x.save(); x.shadowColor='rgba(0,0,0,.45)'; x.shadowBlur=Math.max(8, s*1.6); x.shadowOffsetX=s*0.4; x.shadowOffsetY=s*0.9;
+  x.fillStyle=pared.c; x.fillRect(X, Y, tw*s, th*s); x.restore();
+  // marco
+  if(F>0){
+    var c0=m.c[0], c1=m.c[1], x2=X+tw*s, y2=Y+th*s;
+    var lados=[
+      {p:[X,Y, x2,Y, x2-F,Y+F, X+F,Y+F], l:0.18},       // arriba: más luz
+      {p:[X,Y, X+F,Y+F, X+F,y2-F, X,y2], l:0.08},       // izquierda
+      {p:[x2,Y, x2,y2, x2-F,y2-F, x2-F,Y+F], l:-0.18},  // derecha
+      {p:[X,y2, X+F,y2-F, x2-F,y2-F, x2,y2], l:-0.3}    // abajo: más sombra
+    ];
+    lados.forEach(function(L, idx){
+      var fill;
+      if(m.metal){ var g = idx%2===0 ? x.createLinearGradient(X,0,x2,0) : x.createLinearGradient(0,Y,0,y2);
+        g.addColorStop(0, mezcla(c0, L.l*0.5)); g.addColorStop(0.45, mezcla(c1, L.l)); g.addColorStop(0.7, mezcla(c0, L.l+0.1)); g.addColorStop(1, mezcla(c1, L.l)); fill=g; }
+      else fill=mezcla(c0, L.l);
+      trapecio(x, L.p, fill);
+      if(m.veta){ // vetas de madera a lo largo del lado
+        x.save(); x.beginPath(); x.moveTo(L.p[0],L.p[1]); for(var j=2;j<8;j+=2) x.lineTo(L.p[j],L.p[j+1]); x.closePath(); x.clip();
+        x.strokeStyle=mezcla(c1, L.l-0.15); x.globalAlpha=0.35; x.lineWidth=Math.max(1,s*0.06);
+        var hor = idx===0 || idx===3, n=Math.max(4, Math.round(F/3));
+        for(var v=0; v<n; v++){
+          var o=(v+0.5)/n*F, amp=s*0.15, ph=rnd()*6;
+          x.beginPath();
+          if(hor){ var yy = idx===0 ? Y+o : y2-o; for(var t=X; t<=x2; t+=6){ var yv=yy+Math.sin(t/(s*3)+ph)*amp; if(t===X) x.moveTo(t,yv); else x.lineTo(t,yv); } }
+          else { var xx = idx===1 ? X+o : x2-o; for(var t2=Y; t2<=y2; t2+=6){ var xv=xx+Math.sin(t2/(s*3)+ph)*amp; if(t2===Y) x.moveTo(xv,t2); else x.lineTo(xv,t2); } }
+          x.stroke();
+        }
+        x.restore();
+      }
+    });
+    if(E.perfil==='biselado'){ // filo interior brillante
+      x.strokeStyle='rgba(255,255,255,.35)'; x.lineWidth=Math.max(1,s*0.12);
+      x.strokeRect(X+F*0.55, Y+F*0.55, tw*s-F*1.1, th*s-F*1.1);
+    }
+    if(E.perfil==='caja'){ // marco caja: canto interior en sombra
+      var gi=x.createLinearGradient(0,Y+F,0,Y+F+s*1.2); gi.addColorStop(0,'rgba(0,0,0,.5)'); gi.addColorStop(1,'rgba(0,0,0,0)');
+      x.fillStyle=gi; x.fillRect(X+F, Y+F, tw*s-2*F, s*1.2);
+    }
+    x.strokeStyle='rgba(0,0,0,.45)'; x.lineWidth=1; x.strokeRect(X+F, Y+F, tw*s-2*F, th*s-2*F);
+  }
+  // paspartú
+  var MX=X+F, MY=Y+F, ax=MX+pw*s, ay=MY+pw*s, AW=aw*s, AH=ah*s;
+  if(pw>0){
+    x.fillStyle=pp.c; x.fillRect(MX, MY, tw*s-2*F, th*s-2*F);
+    // bisel del corte (alma blanca): luz arriba/izquierda, sombra abajo/derecha
+    var b=Math.max(1.5, s*0.25);
+    trapecio(x,[ax-b,ay-b, ax+AW+b,ay-b, ax+AW,ay, ax,ay], mezcla('#ffffff',-0.04));
+    trapecio(x,[ax-b,ay-b, ax,ay, ax,ay+AH, ax-b,ay+AH+b], mezcla('#ffffff',-0.1));
+    trapecio(x,[ax+AW+b,ay-b, ax+AW+b,ay+AH+b, ax+AW,ay+AH, ax+AW,ay], mezcla('#ffffff',-0.25));
+    trapecio(x,[ax-b,ay+AH+b, ax,ay+AH, ax+AW,ay+AH, ax+AW+b,ay+AH+b], mezcla('#ffffff',-0.35));
+  } else { ax=MX; ay=MY; }
+  // obra (recorte tipo "cover" para no deformar)
+  if(img){
+    var ir=img.width/img.height, wr=AW/AH, sx=0, sy=0, sw=img.width, sh=img.height;
+    if(ir>wr){ sw=img.height*wr; sx=(img.width-sw)/2; } else { sh=img.width/wr; sy=(img.height-sh)/2; }
+    x.drawImage(img, sx, sy, sw, sh, ax, ay, AW, AH);
+  } else { x.fillStyle='#2a2a2a'; x.fillRect(ax, ay, AW, AH); }
+  // sombra del paspartú sobre la obra
+  var gs=x.createLinearGradient(0,ay,0,ay+s*0.8); gs.addColorStop(0,'rgba(0,0,0,.28)'); gs.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=gs; x.fillRect(ax, ay, AW, s*0.8);
+}
+var cv=$('cv'), raf=null;
+function render(){
+  if(raf) return;
+  raf=requestAnimationFrame(function(){
+    raf=null;
+    var box=$('vista'), dpr=Math.min(2, window.devicePixelRatio||1), W=box.clientWidth, H=box.clientHeight;
+    cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
+    var x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0);
+    dibujar(x, W, H);
+  });
+}
+function exportar(){
+  if(!img){ LZ.toast('Primero cargá una obra'); return; }
+  var aw=parseFloat($('ancho').value)||30, ah=parseFloat($('alto').value)||40, r=aw/ah;
+  var W = r>=1 ? 1800 : Math.round(1800*Math.max(0.75, r*1.1)), H = r>=1 ? Math.round(1800/Math.max(1, r*0.9)) : 1800;
+  var c=document.createElement('canvas'); c.width=W; c.height=H;
+  dibujar(c.getContext('2d'), W, H);
+  $('res-img').src=c.toDataURL('image/jpeg', 0.92);
+  $('m-res').classList.add('on');
+}
+window.addEventListener('resize', render);
+marcarTodo(); render();
+</script>
+</body>
+</html>
