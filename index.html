@@ -6,123 +6,147 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lienzo">
-<meta name="theme-color" content="#1c1824">
+<meta name="theme-color" content="#07080b">
 <link rel="apple-touch-icon" href="icon.png">
 <title>Lienzo</title>
 <style>
-/* Pensado para Safari de iOS 12 (iPhone 6): sin flex-gap, sin inset, sin ?. ni ?? en el JS */
+/* Lienzo · cyberpunk minimalista. Apto Safari iOS 12: sin flex-gap, sin inset, sin blur pesado */
 :root{
-  --fg:#fff; --fg2:rgba(255,255,255,.72); --fg3:rgba(255,255,255,.45);
-  --panel:#16131c; --panel2:#221e2b; --line:rgba(255,255,255,.1);
-  --accent:#e0874a; --ok:#6fbf73; --danger:#e06060;
+  --bg:#07080b; --fg:#d8dee9; --fg2:rgba(216,222,233,.62); --fg3:rgba(216,222,233,.34);
+  --panel:#0a0c10; --panel2:#10131a; --line:rgba(216,222,233,.12);
+  --accent:#00e5ff; --accent2:#ff2e88; --ok:#39ff88;
+  --mono:Menlo,"SF Mono","Courier New",monospace;
 }
+body.t-neon{--accent:#00e5ff;--accent2:#ff2e88}
+body.t-magenta{--accent:#ff2e88;--accent2:#00e5ff}
+body.t-acido{--accent:#b6ff00;--accent2:#00e5ff}
+body.t-ambar{--accent:#ffb000;--accent2:#ff2e88}
+body.t-mono{--accent:#f2f2f2;--accent2:#808080}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:#1c1824;color:var(--fg);
-  font-family:-apple-system,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-input,textarea{font:inherit;color:var(--fg);-webkit-user-select:text;user-select:text}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--mono);
+  -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;letter-spacing:.2px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:0}
+input,textarea,select{font:inherit;color:var(--fg);-webkit-user-select:text;user-select:text;border-radius:0}
 
-/* ---------- Fondo ---------- */
-#wall{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;transition:background .6s}
-.f-atardecer{background:linear-gradient(170deg,#2a1f3d 0%,#7a3b52 55%,#e0874a 100%)}
-.f-noche{background:linear-gradient(170deg,#0b1026 0%,#1d2b5c 60%,#3a4f8f 100%)}
-.f-tinta{background:linear-gradient(170deg,#111 0%,#2b2b2b 60%,#4a4a4a 100%)}
-.f-acuarela{background:linear-gradient(160deg,#3f6e78 0%,#8fb3a8 50%,#e8c9a0 100%)}
-.f-salta{background:linear-gradient(170deg,#5a2a1c 0%,#b5533a 50%,#e9b26b 100%)}
+/* ---------- Fondo: grilla tenue + resplandor del color de acento ---------- */
+#wall{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:var(--bg);
+  background-image:
+    linear-gradient(rgba(216,222,233,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(216,222,233,.035) 1px,transparent 1px);
+  background-size:28px 28px,28px 28px}
+#wall:after{content:"";position:absolute;left:-20%;right:-20%;bottom:-30%;height:65%;
+  background:radial-gradient(ellipse at center,var(--accent) 0%,transparent 65%);opacity:.13}
 
 /* ---------- Inicio ---------- */
 #home{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;display:flex;flex-direction:column;
-  padding:calc(env(safe-area-inset-top) + 28px) 18px 0}
-#widget{padding:6px 6px 18px}
-#hora{font-size:64px;font-weight:200;letter-spacing:-1px;line-height:1}
-#fecha{font-size:17px;color:var(--fg2);margin-top:6px}
-#fecha::first-letter{text-transform:uppercase}
-#clima-w{font-size:15px;color:var(--fg2);margin-top:4px;min-height:20px}
-#grid{flex:1;display:-webkit-box;display:flex;flex-wrap:wrap;align-content:flex-start;margin:0 -4px}
-.app{width:25%;padding:8px 4px 6px;text-align:center}
-.ic{width:60px;height:60px;border-radius:14px;margin:0 auto;display:flex;align-items:center;justify-content:center;
-  font-size:30px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
-.app span{display:block;font-size:11px;margin-top:5px;color:var(--fg);text-shadow:0 1px 2px rgba(0,0,0,.4)}
-.app:active .ic{-webkit-transform:scale(.9);transform:scale(.9)}
-#dock{margin:0 -8px;padding:10px 4px calc(env(safe-area-inset-bottom) + 12px);background:rgba(255,255,255,.18);
-  border-radius:24px 24px 0 0;display:flex}
+  padding:calc(env(safe-area-inset-top) + 30px) 20px 0}
+#widget{padding:0 2px 22px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tag{font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase}
+#hora{font-size:58px;font-weight:200;letter-spacing:-2px;line-height:1;margin-top:8px;color:#fff}
+#hora b{color:var(--accent);font-weight:200}
+#fecha{font-size:12px;color:var(--fg2);margin-top:10px;text-transform:uppercase;letter-spacing:2px}
+#clima-w{font-size:12px;color:var(--fg2);margin-top:4px;min-height:16px;text-transform:uppercase;letter-spacing:2px}
+#clima-w span{color:var(--accent)}
+#grid{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;margin:0 -5px}
+.app{width:25%;padding:7px 5px 9px;text-align:center}
+.ic{width:58px;height:58px;margin:0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:13px;letter-spacing:1px;color:var(--accent);border:1px solid var(--accent);background:rgba(7,8,11,.6);
+  position:relative}
+.ic:after{content:"";position:absolute;top:-1px;right:-1px;width:9px;height:9px;background:var(--bg);
+  border-left:1px solid var(--accent);border-bottom:1px solid var(--accent)}
+.ic.main{background:var(--accent);color:var(--bg);font-weight:700}
+.app span{display:block;font-size:9px;margin-top:7px;color:var(--fg2);text-transform:uppercase;letter-spacing:1.5px}
+.app:active .ic{background:var(--accent);color:var(--bg)}
+#dock{margin:0 -20px;padding:12px 15px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid var(--accent);
+  background:rgba(7,8,11,.85);display:flex}
 #dock .app span{display:none}
-#dock .app{padding:4px}
+#dock .app{padding:3px 5px}
 
 /* ---------- Pantallas de app ---------- */
 .screen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:5;background:var(--panel);display:flex;flex-direction:column;
-  -webkit-transform:translateY(100%);transform:translateY(100%);transition:-webkit-transform .28s ease,transform .28s ease}
+  -webkit-transform:translateX(100%);transform:translateX(100%);transition:-webkit-transform .22s ease-out,transform .22s ease-out}
 .screen.on{-webkit-transform:none;transform:none}
-.bar{display:flex;align-items:center;padding:calc(env(safe-area-inset-top) + 24px) 14px 10px;border-bottom:1px solid var(--line)}
-.bar h1{flex:1;font-size:17px;font-weight:600;text-align:center}
-.bar button{width:70px;color:var(--accent);font-size:16px;text-align:left}
+.bar{display:flex;align-items:center;padding:calc(env(safe-area-inset-top) + 26px) 16px 12px;border-bottom:1px solid var(--line)}
+.bar h1{flex:1;font-size:12px;font-weight:400;text-align:center;text-transform:uppercase;letter-spacing:4px;color:#fff}
+.bar h1:before{content:"// ";color:var(--accent)}
+.bar button{width:76px;color:var(--accent);font-size:11px;text-align:left;text-transform:uppercase;letter-spacing:1.5px}
 .bar button.r{text-align:right}
-.body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px}
+.body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
 
 /* ---------- Claude ---------- */
 #chat .body{padding-bottom:6px}
-.msg{max-width:84%;padding:9px 13px;border-radius:18px;margin:4px 0;font-size:16px;line-height:1.35;
+.msg{max-width:88%;padding:9px 12px;margin:6px 0;font-size:14px;line-height:1.45;
   white-space:pre-wrap;word-wrap:break-word;-webkit-user-select:text;user-select:text}
-.msg.u{margin-left:auto;background:var(--accent);color:#1b120c;border-bottom-right-radius:5px}
-.msg.a{background:var(--panel2);border-bottom-left-radius:5px}
-.msg.s{max-width:100%;background:none;color:var(--fg3);font-size:13px;text-align:center;padding:4px}
-.msg img{max-width:100%;border-radius:10px;display:block;margin-bottom:6px}
-.accion{display:inline-block;margin-top:8px;padding:7px 14px;border-radius:14px;background:var(--accent);color:#1b120c;font-weight:600;font-size:15px}
-.dots span{display:inline-block;width:7px;height:7px;margin-right:4px;border-radius:50%;background:var(--fg3);
-  -webkit-animation:b 1s infinite;animation:b 1s infinite}
-.dots span:nth-child(2){-webkit-animation-delay:.15s;animation-delay:.15s}
-.dots span:nth-child(3){-webkit-animation-delay:.3s;animation-delay:.3s}
-@-webkit-keyframes b{50%{opacity:.25}} @keyframes b{50%{opacity:.25}}
-#composer{display:flex;align-items:flex-end;padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);border-top:1px solid var(--line);background:var(--panel)}
-#composer textarea{flex:1;resize:none;max-height:110px;padding:8px 12px;border-radius:18px;border:1px solid var(--line);background:var(--panel2);font-size:16px;line-height:1.3;outline:0}
-#composer button{width:38px;height:38px;border-radius:19px;margin-left:8px;font-size:18px;flex-shrink:0}
-#send{background:var(--accent);color:#1b120c;font-weight:700}
-#foto-btn{background:var(--panel2)}
-#adjunto{display:none;padding:6px 12px 0;font-size:13px;color:var(--fg2)}
+.msg.u{margin-left:auto;border:1px solid var(--accent);color:#fff;background:rgba(0,0,0,.2)}
+.msg.a{border-left:2px solid var(--accent2);padding-left:12px;color:var(--fg)}
+.msg.a:before{content:"> ";color:var(--accent2)}
+.msg.a.dots:before,.msg.a.btnw:before{content:""}
+.msg.s{max-width:100%;color:var(--fg3);font-size:10px;text-align:center;padding:4px;text-transform:uppercase;letter-spacing:2px}
+.msg b{color:var(--accent)}
+.msg img{max-width:100%;display:block;margin-bottom:6px;border:1px solid var(--line)}
+.accion{display:inline-block;padding:9px 14px;border:1px solid var(--accent);color:var(--accent);font-size:12px;
+  text-transform:uppercase;letter-spacing:1.5px}
+.accion:active{background:var(--accent);color:var(--bg)}
+.dots span{display:inline-block;width:8px;height:14px;margin-right:4px;background:var(--accent2);
+  -webkit-animation:b 1s steps(2) infinite;animation:b 1s steps(2) infinite}
+.dots span:nth-child(2){-webkit-animation-delay:.2s;animation-delay:.2s}
+.dots span:nth-child(3){-webkit-animation-delay:.4s;animation-delay:.4s}
+@-webkit-keyframes b{50%{opacity:.15}} @keyframes b{50%{opacity:.15}}
+#composer{display:flex;align-items:flex-end;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line);background:var(--panel)}
+#composer textarea{flex:1;resize:none;max-height:110px;padding:9px 10px;border:1px solid var(--line);border-bottom-color:var(--accent);
+  background:var(--panel2);font-size:16px;line-height:1.3;outline:0}
+#composer button{width:40px;height:38px;margin-left:8px;font-size:11px;flex-shrink:0;letter-spacing:1px}
+#send{background:var(--accent);color:var(--bg);font-weight:700}
+#composer #foto-btn{border:1px solid var(--line);color:var(--fg2);margin:0 8px 0 0}
+#adjunto{display:none;padding:8px 14px 0;font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px}
 
 /* ---------- Listas (Notas / Tareas) ---------- */
-.item{background:var(--panel2);border-radius:12px;padding:12px 14px;margin-bottom:10px}
-.item h3{font-size:16px;font-weight:600;margin-bottom:3px}
-.item p{font-size:15px;color:var(--fg2);white-space:pre-wrap;-webkit-user-select:text;user-select:text}
-.item small{display:block;color:var(--fg3);font-size:12px;margin-top:6px}
-.item .del{float:right;color:var(--fg3);font-size:13px}
+.item{border:1px solid var(--line);border-left:2px solid var(--accent);padding:12px 14px;margin-bottom:10px;background:var(--panel2)}
+.item h3{font-size:13px;font-weight:700;margin-bottom:5px;color:#fff;text-transform:uppercase;letter-spacing:1px}
+.item p{font-size:14px;color:var(--fg2);white-space:pre-wrap;line-height:1.45;-webkit-user-select:text;user-select:text}
+.item small{display:block;color:var(--fg3);font-size:10px;margin-top:8px;letter-spacing:1.5px}
+.item .del{float:right;color:var(--accent2);font-size:10px;text-transform:uppercase;letter-spacing:1px}
 .tarea{display:flex;align-items:center}
-.tarea .chk{width:24px;height:24px;border-radius:12px;border:2px solid var(--fg3);margin-right:12px;flex-shrink:0;text-align:center;line-height:20px;font-size:14px}
-.tarea.hecha .chk{background:var(--ok);border-color:var(--ok);color:#111}
+.tarea .chk{width:20px;height:20px;border:1px solid var(--accent);margin-right:12px;flex-shrink:0;text-align:center;line-height:18px;font-size:12px}
+.tarea.hecha{border-left-color:var(--fg3)}
+.tarea.hecha .chk{background:var(--accent);color:var(--bg)}
 .tarea.hecha .t{text-decoration:line-through;color:var(--fg3)}
-.tarea .t{flex:1;font-size:16px}
-.vacio{color:var(--fg3);text-align:center;margin-top:40px;font-size:15px}
-.campo{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:16px;outline:0;margin-bottom:10px}
-textarea.campo{min-height:90px;resize:vertical}
-.btn{display:block;width:100%;padding:12px;border-radius:12px;background:var(--accent);color:#1b120c;font-weight:600;font-size:16px;text-align:center}
-.btn.sec{background:var(--panel2);color:var(--fg)}
-.lbl{font-size:13px;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin:18px 4px 8px}
+.tarea .t{flex:1;font-size:14px}
+.vacio{color:var(--fg3);text-align:center;margin-top:50px;font-size:11px;text-transform:uppercase;letter-spacing:2px;line-height:1.7}
+.campo{width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--panel2);font-size:16px;outline:0;margin-bottom:10px;-webkit-appearance:none;appearance:none}
+.campo:focus{border-color:var(--accent)}
+textarea.campo{min-height:100px;resize:vertical}
+.btn{display:block;width:100%;padding:13px;background:var(--accent);color:var(--bg);font-weight:700;font-size:12px;text-align:center;text-transform:uppercase;letter-spacing:2px}
+.btn.sec{background:none;border:1px solid var(--line);color:var(--fg2)}
+.btn.peligro{background:none;border:1px solid var(--accent2);color:var(--accent2)}
+.lbl{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:3px;margin:24px 0 10px}
 .lbl:first-child{margin-top:0}
-.nota-txt{font-size:13px;color:var(--fg3);margin:6px 4px 0;line-height:1.4}
+.nota-txt{font-size:11px;color:var(--fg3);margin:2px 0 0;line-height:1.5}
 
 /* ---------- Clima ---------- */
-.clima-hoy{text-align:center;padding:20px 0 26px}
-.clima-hoy .t{font-size:72px;font-weight:200}
-.clima-hoy .d{font-size:18px;color:var(--fg2)}
-.dia{display:flex;padding:11px 4px;border-bottom:1px solid var(--line);font-size:16px}
-.dia b{flex:1;font-weight:400;text-transform:capitalize}
-.dia i{font-style:normal;width:40px;text-align:center}
-.dia em{font-style:normal;width:90px;text-align:right;color:var(--fg2)}
+.clima-hoy{padding:16px 0 28px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.clima-hoy .t{font-size:76px;font-weight:200;letter-spacing:-3px;color:#fff;line-height:1.1}
+.clima-hoy .t b{color:var(--accent);font-weight:200}
+.clima-hoy .d{font-size:11px;color:var(--fg2);text-transform:uppercase;letter-spacing:2px}
+.dia{display:flex;padding:13px 0;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:1.5px}
+.dia b{flex:1;font-weight:400}
+.dia i{font-style:normal;width:56px;color:var(--accent)}
+.dia em{font-style:normal;width:84px;text-align:right;color:var(--fg2)}
 
 /* ---------- Ajustes ---------- */
-.fondos{display:flex;flex-wrap:wrap;margin:0 -5px}
-.fondos button{width:56px;height:56px;border-radius:14px;margin:5px;border:3px solid transparent}
+.fondos{display:flex;flex-wrap:wrap;margin:0 -4px}
+.fondos button{width:52px;height:52px;margin:4px;border:1px solid var(--line);position:relative;font-size:9px;letter-spacing:1px;padding-top:30px}
 .fondos button.sel{border-color:#fff}
-select.campo{-webkit-appearance:none;appearance:none}
+.fondos button i{position:absolute;top:10px;left:50%;margin-left:-8px;width:16px;height:16px}
 </style>
 </head>
 <body>
-<div id="wall" class="f-atardecer"></div>
+<div id="wall"></div>
 
 <!-- INICIO -->
 <main id="home">
   <section id="widget">
+    <div class="tag">Lienzo // iPhone 6</div>
     <div id="hora">--:--</div>
     <div id="fecha"></div>
     <div id="clima-w"></div>
@@ -135,12 +159,12 @@ select.campo{-webkit-appearance:none;appearance:none}
 <section class="screen" id="chat">
   <div class="bar"><button onclick="cerrar()">‹ Inicio</button><h1>Claude</h1><button class="r" onclick="nuevaCharla()">Nueva</button></div>
   <div class="body" id="msgs"></div>
-  <div id="adjunto">📎 Foto lista para enviar · <a href="#" onclick="quitarFoto();return false" style="color:var(--accent)">quitar</a></div>
+  <div id="adjunto">[img] Foto lista · <a href="#" onclick="quitarFoto();return false" style="color:var(--accent2)">quitar</a></div>
   <div id="composer">
-    <button id="foto-btn" onclick="document.getElementById('foto-in').click()">📷</button>
+    <button id="foto-btn" onclick="document.getElementById('foto-in').click()">IMG</button>
     <input type="file" id="foto-in" accept="image/*" style="display:none">
     <textarea id="txt" rows="1" placeholder="Pedile algo a Claude…"></textarea>
-    <button id="send" onclick="enviar()">↑</button>
+    <button id="send" onclick="enviar()">&gt;</button>
   </div>
 </section>
 
@@ -181,10 +205,10 @@ select.campo{-webkit-appearance:none;appearance:none}
     <div class="lbl">Tu nombre</div>
     <input class="campo" id="nombre-in" placeholder="Cómo querés que te llame">
     <button class="btn" onclick="guardarAjustes()">Guardar</button>
-    <div class="lbl">Fondo</div>
+    <div class="lbl">Tema</div>
     <div class="fondos" id="fondos"></div>
     <div class="lbl">Datos</div>
-    <button class="btn sec" onclick="borrarTodo()">Borrar notas, tareas y charlas</button>
+    <button class="btn peligro" onclick="borrarTodo()">Borrar notas, tareas y charlas</button>
   </div>
 </section>
 
@@ -199,7 +223,7 @@ function guardar(k, v){ try{ localStorage.setItem('lz_'+k, JSON.stringify(v)); }
 
 var S = {
   key: leer('key',''), modelo: leer('modelo','claude-haiku-5-5'), nombre: leer('nombre',''),
-  fondo: leer('fondo','atardecer'), notas: leer('notas',[]), tareas: leer('tareas',[]),
+  fondo: leer('fondo','neon'), notas: leer('notas',[]), tareas: leer('tareas',[]),
   historial: leer('historial',[]), chatVista: leer('chatVista',[])
 };
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -208,29 +232,30 @@ function $(id){ return document.getElementById(id); }
 
 // ---------- Apps ----------
 var APPS = [
-  {id:'chat',    n:'Claude',   e:'✦',  c:'#e0874a', dock:true},
-  {id:'notas',   n:'Notas',    e:'📝', c:'#f5d76e'},
-  {id:'tareas',  n:'Tareas',   e:'✅', c:'#ffffff'},
-  {id:'clima',   n:'Clima',    e:'⛅', c:'#5aa7e8'},
-  {id:'telefono',n:'Teléfono', e:'📞', c:'#4cd964', url:'tel:', dock:true},
-  {id:'mensajes',n:'Mensajes', e:'💬', c:'#4cd964', url:'sms:', dock:true},
-  {id:'mail',    n:'Mail',     e:'✉️', c:'#3d8ef0', url:'mailto:'},
-  {id:'mapas',   n:'Mapas',    e:'🗺️', c:'#8fd18a', url:'https://maps.apple.com/'},
-  {id:'musica',  n:'Música',   e:'🎵', c:'#fc3c5f', url:'music://', dock:true},
-  {id:'fotos',   n:'Fotos',    e:'🌼', c:'#ffffff', url:'photos-redirect://'},
-  {id:'safari',  n:'Safari',   e:'🧭', c:'#ffffff', url:'https://www.google.com/'},
-  {id:'ajustes', n:'Ajustes',  e:'⚙️', c:'#8e8e93'}
+  {id:'chat',    n:'Claude',   e:'AI',   dock:true},
+  {id:'notas',   n:'Notas',    e:'NOT'},
+  {id:'tareas',  n:'Tareas',   e:'TAR'},
+  {id:'clima',   n:'Clima',    e:'CLI'},
+  {id:'telefono',n:'Teléfono', e:'TEL',  url:'tel:', dock:true},
+  {id:'mensajes',n:'Mensajes', e:'SMS',  url:'sms:', dock:true},
+  {id:'mail',    n:'Mail',     e:'@',    url:'mailto:'},
+  {id:'mapas',   n:'Mapas',    e:'MAP',  url:'https://maps.apple.com/'},
+  {id:'musica',  n:'Música',   e:'MUS',  url:'music://', dock:true},
+  {id:'fotos',   n:'Fotos',    e:'FOT',  url:'photos-redirect://'},
+  {id:'safari',  n:'Web',      e:'WEB',  url:'https://www.google.com/'},
+  {id:'ajustes', n:'Ajustes',  e:'CFG'}
 ];
-var FONDOS = {atardecer:'#c0644a', noche:'#1d2b5c', tinta:'#333', acuarela:'#8fb3a8', salta:'#b5533a'};
+var FONDOS = {neon:'#00e5ff', magenta:'#ff2e88', acido:'#b6ff00', ambar:'#ffb000', mono:'#f2f2f2'};
+if(!FONDOS[S.fondo]) S.fondo='neon';
 
 function iconoHTML(a){
-  return '<button class="app" onclick="abrir(\''+a.id+'\')"><div class="ic" style="background:'+a.c+';'+(a.id==='chat'?'color:#1b120c;font-size:32px;font-weight:700':'')+'">'+a.e+'</div><span>'+a.n+'</span></button>';
+  return '<button class="app" onclick="abrir(\''+a.id+'\')"><div class="ic'+(a.id==='chat'?' main':'')+'">'+a.e+'</div><span>'+a.n+'</span></button>';
 }
 function pintarInicio(){
   var g='', d='';
   APPS.forEach(function(a){ if(a.dock) d+=iconoHTML(a); else g+=iconoHTML(a); });
   $('grid').innerHTML=g; $('dock').innerHTML=d;
-  $('wall').className='f-'+S.fondo;
+  document.body.className='t-'+S.fondo;
 }
 var abierta=null;
 function abrir(id){
@@ -252,7 +277,7 @@ var DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 var MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 function reloj(){
   var n=new Date(), h=n.getHours(), m=n.getMinutes();
-  $('hora').textContent=(h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+  $('hora').innerHTML=(h<10?'0':'')+h+'<b>:</b>'+(m<10?'0':'')+m;
   $('fecha').textContent=DIAS[n.getDay()]+' '+n.getDate()+' de '+MESES[n.getMonth()];
 }
 
@@ -284,10 +309,10 @@ function alternarTarea(id){ S.tareas.forEach(function(t){ if(t.id===id) t.hecha=
 function limpiarHechas(){ S.tareas=S.tareas.filter(function(t){return !t.hecha;}); guardar('tareas',S.tareas); pintarTareas(); }
 
 // ---------- Clima (Open-Meteo, sin clave) ----------
-var WMO={0:['☀️','Despejado'],1:['🌤️','Mayormente despejado'],2:['⛅','Parcialmente nublado'],3:['☁️','Nublado'],45:['🌫️','Niebla'],48:['🌫️','Niebla'],
-  51:['🌦️','Llovizna'],53:['🌦️','Llovizna'],55:['🌦️','Llovizna'],61:['🌧️','Lluvia leve'],63:['🌧️','Lluvia'],65:['🌧️','Lluvia fuerte'],
-  71:['🌨️','Nieve'],73:['🌨️','Nieve'],75:['🌨️','Nieve'],80:['🌦️','Chaparrones'],81:['🌧️','Chaparrones'],82:['⛈️','Chaparrones fuertes'],95:['⛈️','Tormenta'],96:['⛈️','Tormenta'],99:['⛈️','Tormenta']};
-function wmo(c){ return WMO[c]||['🌡️','—']; }
+var WMO={0:['CLR','Despejado'],1:['CLR','Mayormente despejado'],2:['NUB','Parcialmente nublado'],3:['NUB','Nublado'],45:['NIE','Niebla'],48:['NIE','Niebla'],
+  51:['LLV','Llovizna'],53:['LLV','Llovizna'],55:['LLV','Llovizna'],61:['LLV','Lluvia leve'],63:['LLV','Lluvia'],65:['LLV','Lluvia fuerte'],
+  71:['NEV','Nieve'],73:['NEV','Nieve'],75:['NEV','Nieve'],80:['LLV','Chaparrones'],81:['LLV','Chaparrones'],82:['TRM','Chaparrones fuertes'],95:['TRM','Tormenta'],96:['TRM','Tormenta'],99:['TRM','Tormenta']};
+function wmo(c){ return WMO[c]||['---','—']; }
 var climaDatos=leer('clima',null);
 function posicion(){
   return new Promise(function(ok){
@@ -306,8 +331,8 @@ function cargarClima(forzar){
 function pintarClima(){
   if(!climaDatos) return;
   var j=climaDatos.j, c=j.current, w=wmo(c.weather_code), d=j.daily;
-  $('clima-w').textContent=w[0]+' '+Math.round(c.temperature_2m)+'° · '+w[1];
-  var h='<div class="clima-hoy"><div class="d">'+esc(climaDatos.lugar)+'</div><div class="t">'+Math.round(c.temperature_2m)+'°</div><div class="d">'+w[1]+'</div></div>';
+  $('clima-w').innerHTML='<span>'+Math.round(c.temperature_2m)+'°</span> · '+esc(w[1]);
+  var h='<div class="clima-hoy"><div class="d">'+esc(climaDatos.lugar)+'</div><div class="t">'+Math.round(c.temperature_2m)+'<b>°</b></div><div class="d">'+w[1]+'</div></div>';
   for(var i=0;i<d.time.length;i++){
     var f=new Date(d.time[i]+'T12:00:00'), x=wmo(d.weather_code[i]);
     h+='<div class="dia"><b>'+(i===0?'hoy':DIAS[f.getDay()])+'</b><i>'+x[0]+'</i><em>'+Math.round(d.temperature_2m_min[i])+'° / '+Math.round(d.temperature_2m_max[i])+'°</em></div>';
@@ -318,7 +343,7 @@ function pintarClima(){
 // ---------- Ajustes ----------
 function pintarAjustes(){
   $('key-in').value=S.key; $('modelo-in').value=S.modelo; $('nombre-in').value=S.nombre;
-  var h=''; for(var k in FONDOS){ h+='<button class="f-'+k+(S.fondo===k?' sel':'')+'" onclick="ponerFondo(\''+k+'\')" title="'+k+'"></button>'; }
+  var h=''; for(var k in FONDOS){ h+='<button class="'+(S.fondo===k?'sel':'')+'" onclick="ponerFondo(\''+k+'\')"><i style="background:'+FONDOS[k]+'"></i>'+k.slice(0,3).toUpperCase()+'</button>'; }
   $('fondos').innerHTML=h;
 }
 function guardarAjustes(){
@@ -326,7 +351,7 @@ function guardarAjustes(){
   guardar('key',S.key); guardar('modelo',S.modelo); guardar('nombre',S.nombre);
   cerrar();
 }
-function ponerFondo(k){ if(!FONDOS[k]) return false; S.fondo=k; guardar('fondo',k); $('wall').className='f-'+k; if(abierta==='ajustes') pintarAjustes(); return true; }
+function ponerFondo(k){ if(!FONDOS[k]) return false; S.fondo=k; guardar('fondo',k); document.body.className='t-'+k; if(abierta==='ajustes') pintarAjustes(); return true; }
 function borrarTodo(){
   if(!confirm('¿Borrar notas, tareas y charlas? No se puede deshacer.')) return;
   S.notas=[]; S.tareas=[]; S.historial=[]; S.chatVista=[];
@@ -349,7 +374,7 @@ var HERRAMIENTAS=[
    input_schema:{type:'object', properties:{app:{type:'string', enum:APPS.map(function(a){return a.id;})}}, required:['app']}},
   {name:'preparar_contacto', description:'Prepara un botón para llamar, mandar SMS o mail, o buscar un lugar en Mapas. La persona lo toca para ejecutarlo.',
    input_schema:{type:'object', properties:{tipo:{type:'string', enum:['llamar','sms','mail','mapa']}, valor:{type:'string', description:'Número, dirección de mail o lugar a buscar'}, texto:{type:'string', description:'Cuerpo del SMS o asunto del mail (opcional)'}}, required:['tipo','valor']}},
-  {name:'cambiar_fondo', description:'Cambia el fondo de pantalla del launcher.',
+  {name:'cambiar_fondo', description:'Cambia el tema de color neón del launcher (neon=cian, magenta, acido=verde lima, ambar, mono=blanco y gris).',
    input_schema:{type:'object', properties:{fondo:{type:'string', enum:Object.keys(FONDOS)}}, required:['fondo']}},
   {name:'ver_clima', description:'Devuelve el clima actual y el pronóstico de 6 días de la ubicación de la persona.',
    input_schema:{type:'object', properties:{}}}
@@ -361,7 +386,7 @@ function sistema(){
   var notas=S.notas.slice(-15).map(function(x){return '- ['+x.id+'] '+(x.titulo||'Sin título')+': '+x.texto.slice(0,140);}).join('\n')||'(ninguna)';
   return 'Sos Claude, el asistente que controla "Lienzo", el sistema de inicio de un iPhone 6.'+
     (S.nombre?' La persona se llama '+S.nombre+'.':'')+
-    ' Hablá en español rioplatense, breve y claro: la pantalla es chica (4,7"). Sin markdown complejo; a lo sumo **negrita**.'+
+    ' Hablá en español rioplatense, breve y claro: la pantalla es chica (4,7"). Sin markdown complejo ni emojis; a lo sumo **negrita**. La estética del launcher es cyberpunk minimalista.'+
     ' Usá las herramientas cuando la persona pida guardar, recordar, organizar, abrir algo o cambiar el aspecto del teléfono. Si algo no se puede hacer desde acá (alarmas del sistema, cámara en vivo, ajustes de iOS), decilo y sugerí la alternativa.'+
     '\n\nAhora: '+DIAS[n.getDay()]+' '+n.getDate()+' de '+MESES[n.getMonth()]+' de '+n.getFullYear()+', '+n.toTimeString().slice(0,5)+'.'+
     '\n\nTareas pendientes:\n'+pend+'\n\nÚltimas notas:\n'+notas;
@@ -370,24 +395,24 @@ function sistema(){
 function ejecutar(nombre, input){
   var r;
   switch(nombre){
-    case 'crear_nota': r=agregarNota(input.titulo||'', input.texto); return {res:'Nota guardada (id '+r.id+').', vista:'📝 Nota guardada'};
-    case 'borrar_nota': S.notas=S.notas.filter(function(n){return n.id!==input.id;}); guardar('notas',S.notas); return {res:'Nota borrada.', vista:'🗑️ Nota borrada'};
-    case 'crear_tarea': r=agregarTarea(input.texto, input.fecha); return {res:'Tarea creada (id '+r.id+').', vista:'✅ Tarea: '+input.texto};
+    case 'crear_nota': r=agregarNota(input.titulo||'', input.texto); return {res:'Nota guardada (id '+r.id+').', vista:'[+] Nota guardada'};
+    case 'borrar_nota': S.notas=S.notas.filter(function(n){return n.id!==input.id;}); guardar('notas',S.notas); return {res:'Nota borrada.', vista:'[-] Nota borrada'};
+    case 'crear_tarea': r=agregarTarea(input.texto, input.fecha); return {res:'Tarea creada (id '+r.id+').', vista:'[+] Tarea: '+input.texto};
     case 'completar_tarea':
       var ok=false; S.tareas.forEach(function(t){ if(t.id===input.id){ t.hecha=true; ok=true; } }); guardar('tareas',S.tareas);
-      return {res: ok?'Tarea completada.':'No encontré esa tarea.', vista: ok?'✓ Tarea completada':null};
+      return {res: ok?'Tarea completada.':'No encontré esa tarea.', vista: ok?'[x] Tarea completada':null};
     case 'abrir_app':
       var a=APPS.filter(function(x){return x.id===input.app;})[0];
       if(!a) return {res:'Esa app no existe.'};
       return {res:'Botón para abrir '+a.n+' mostrado.', boton:{txt:'Abrir '+a.n, app:a.id}};
     case 'preparar_contacto':
       var v=String(input.valor||''), u='', t='';
-      if(input.tipo==='llamar'){ u='tel:'+v.replace(/[^\d+]/g,''); t='📞 Llamar a '+v; }
-      else if(input.tipo==='sms'){ u='sms:'+v.replace(/[^\d+]/g,'')+(input.texto?'&body='+encodeURIComponent(input.texto):''); t='💬 SMS a '+v; }
-      else if(input.tipo==='mail'){ u='mailto:'+v+(input.texto?'?subject='+encodeURIComponent(input.texto):''); t='✉️ Mail a '+v; }
-      else { u='https://maps.apple.com/?q='+encodeURIComponent(v); t='🗺️ Ver '+v+' en Mapas'; }
+      if(input.tipo==='llamar'){ u='tel:'+v.replace(/[^\d+]/g,''); t='Llamar › '+v; }
+      else if(input.tipo==='sms'){ u='sms:'+v.replace(/[^\d+]/g,'')+(input.texto?'&body='+encodeURIComponent(input.texto):''); t='SMS › '+v; }
+      else if(input.tipo==='mail'){ u='mailto:'+v+(input.texto?'?subject='+encodeURIComponent(input.texto):''); t='Mail › '+v; }
+      else { u='https://maps.apple.com/?q='+encodeURIComponent(v); t='Mapa › '+v; }
       return {res:'Botón preparado.', boton:{txt:t, url:u}};
-    case 'cambiar_fondo': return ponerFondo(input.fondo)?{res:'Fondo cambiado.', vista:'🎨 Fondo: '+input.fondo}:{res:'Fondo inválido.'};
+    case 'cambiar_fondo': return ponerFondo(input.fondo)?{res:'Fondo cambiado.', vista:'[*] Tema: '+input.fondo}:{res:'Fondo inválido.'};
     case 'ver_clima':
       return cargarClima(false).then(function(){
         if(!climaDatos) return {res:'No hay datos de clima.'};
@@ -403,19 +428,19 @@ function ejecutar(nombre, input){
 function textoAHTML(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
 function burbuja(m){
   if(m.r==='s') return '<div class="msg s">'+esc(m.t)+'</div>';
-  if(m.r==='b') return '<div class="msg a"><button class="accion" onclick="'+(m.app?'abrir(\''+m.app+'\')':'window.location.href=\''+esc(m.url).replace(/'/g,'%27')+'\'')+'">'+esc(m.t)+'</button></div>';
+  if(m.r==='b') return '<div class="msg a btnw"><button class="accion" onclick="'+(m.app?'abrir(\''+m.app+'\')':'window.location.href=\''+esc(m.url).replace(/'/g,'%27')+'\'')+'">'+esc(m.t)+'</button></div>';
   return '<div class="msg '+m.r+'">'+(m.img?'<img src="'+m.img+'">':'')+textoAHTML(m.t||'')+'</div>';
 }
 function pintarChat(){
   var el=$('msgs');
-  if(!S.chatVista.length) el.innerHTML='<div class="msg s">Hola'+(S.nombre?' '+esc(S.nombre):'')+'. Puedo guardar notas, armar tareas, ver el clima, preparar llamadas y mensajes, o cambiar el fondo. ¿Qué necesitás?</div>';
+  if(!S.chatVista.length) el.innerHTML='<div class="msg s">Hola'+(S.nombre?' '+esc(S.nombre):'')+'. Puedo guardar notas, armar tareas, ver el clima, preparar llamadas y mensajes, o cambiar el tema de color. ¿Qué necesitás?</div>';
   else el.innerHTML=S.chatVista.map(burbuja).join('');
   el.scrollTop=el.scrollHeight;
 }
 function mostrar(m){
   // las miniaturas no se guardan para no llenar el almacenamiento
   var copia={r:m.r,t:m.t,url:m.url,app:m.app};
-  if(m.img) copia.t='📷 '+(m.t||'');
+  if(m.img) copia.t='[img] '+(m.t||'');
   S.chatVista.push(copia); if(S.chatVista.length>80) S.chatVista=S.chatVista.slice(-80);
   guardar('chatVista',S.chatVista);
   var el=$('msgs'); if(S.chatVista.length===1) el.innerHTML='';
@@ -425,7 +450,7 @@ function escribiendo(on){
   var x=$('dots'); if(x) x.parentNode.removeChild(x);
   if(on){ $('msgs').insertAdjacentHTML('beforeend','<div class="msg a dots" id="dots"><span></span><span></span><span></span></div>'); $('msgs').scrollTop=$('msgs').scrollHeight; }
 }
-function avisoSinClave(){ if(!S.chatVista.length) $('msgs').insertAdjacentHTML('beforeend','<div class="msg s">Primero cargá tu clave de API en Ajustes.</div><div class="msg a"><button class="accion" onclick="abrir(\'ajustes\')">Ir a Ajustes</button></div>'); }
+function avisoSinClave(){ if(!S.chatVista.length) $('msgs').insertAdjacentHTML('beforeend','<div class="msg s">Primero cargá tu clave de API en Ajustes.</div><div class="msg a btnw"><button class="accion" onclick="abrir(\'ajustes\')">Ir a Ajustes</button></div>'); }
 function nuevaCharla(){ S.historial=[]; S.chatVista=[]; guardar('historial',[]); guardar('chatVista',[]); pintarChat(); }
 
 // ---------- Foto (se achica antes de enviar) ----------
